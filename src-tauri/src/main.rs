@@ -10,11 +10,14 @@ use tauri::{
 
 #[cfg(windows)]
 use windows::Win32::{
-    Foundation::HWND,
+    Foundation::{HWND, POINT},
+    Graphics::Gdi::ScreenToClient,
     UI::WindowsAndMessaging::{
         FindWindowA, FindWindowExA, GetDesktopWindow, SetParent,
-        SetWindowPos, HWND_BOTTOM, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+        SetWindowPos, HWND_BOTTOM, SWP_NOACTIVATE, SWP_FRAMECHANGED,
         SendMessageTimeoutA, SMTO_NORMAL,
+        GetWindowLongW, SetWindowLongW, GWL_STYLE,
+        WS_CAPTION, WS_THICKFRAME, WS_SYSMENU,
     },
 };
 
@@ -65,8 +68,50 @@ fn greet(name: &str) -> String {
     format!("你好, {}! 欢迎使用 Tauri + React!", name)
 }
 
+#[derive(serde::Serialize)]
+struct MonitorInfo {
+    name: String,
+    position: (i32, i32),
+    size: (u32, u32),
+    scale_factor: f64,
+    is_primary: bool,
+}
+
 #[tauri::command]
-fn toggle_wallpaper_mode(window: tauri::WebviewWindow) -> Result<bool, String> {
+fn get_available_monitors(window: tauri::WebviewWindow) -> Result<Vec<MonitorInfo>, String> {
+    let monitors = window
+        .available_monitors()
+        .map_err(|e| format!("无法获取显示器列表: {}", e))?;
+    
+    let mut monitor_list = Vec::new();
+    let primary_monitor = window
+        .primary_monitor()
+        .ok()
+        .flatten();
+    
+    for (index, monitor) in monitors.iter().enumerate() {
+        let size = monitor.size();
+        let position = monitor.position();
+        let scale_factor = monitor.scale_factor();
+        let is_primary = primary_monitor
+            .as_ref()
+            .map(|pm| pm.name() == monitor.name())
+            .unwrap_or(false);
+        
+        monitor_list.push(MonitorInfo {
+            name: format!("显示器 {} ({})", index + 1, if is_primary { "主显示器" } else { "" }),
+            position: (position.x, position.y),
+            size: (size.width, size.height),
+            scale_factor,
+            is_primary,
+        });
+    }
+    
+    Ok(monitor_list)
+}
+
+#[tauri::command]
+fn toggle_wallpaper_mode(window: tauri::WebviewWindow, monitor_index: Option<usize>) -> Result<bool, String> {
     #[cfg(windows)]
     {
         let is_wallpaper = IS_WALLPAPER_MODE.load(Ordering::SeqCst);
@@ -102,33 +147,68 @@ fn toggle_wallpaper_mode(window: tauri::WebviewWindow) -> Result<bool, String> {
                     let hwnd = window.hwnd().map_err(|e| e.to_string())?;
                     let hwnd = HWND(hwnd.0 as *mut std::ffi::c_void);
                     
-                    // 获取屏幕尺寸
-                    let monitor = window.current_monitor()
-                        .map_err(|e| e.to_string())?
-                        .ok_or("无法获取显示器信息")?;
-                    let size = monitor.size();
+                    // 获取显示器信息
+                    let (width, height, pos_x, pos_y) = if let Some(index) = monitor_index {
+                        let monitors = window
+                            .available_monitors()
+                            .map_err(|e| format!("无法获取显示器列表: {}", e))?;
+                        let monitor = monitors.get(index).ok_or(format!("显示器索引 {} 无效", index))?;
+                        let size = monitor.size();
+                        let position = monitor.position();
+                        (size.width, size.height, position.x, position.y)
+                    } else {
+                        // 默认使用主显示器
+                        let monitor = window
+                            .primary_monitor()
+                            .map_err(|e| format!("无法获取主显示器: {}", e))?
+                            .ok_or("未找到主显示器".to_string())?;
+                        let size = monitor.size();
+                        let position = monitor.position();
+                        (size.width, size.height, position.x, position.y)
+                    };
                     
                     // 设置无边框全屏
                     let _ = window.set_decorations(false);
                     let _ = window.set_resizable(false);
                     let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
-                        width: size.width,
-                        height: size.height,
+                        width,
+                        height,
                     }));
+                    
+                    // 先将窗口移动到目标位置（屏幕坐标）
                     let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-                        x: 0,
-                        y: 0,
+                        x: pos_x,
+                        y: pos_y,
                     }));
+                    
+                    // 使用 Windows API 强制移除标题栏样式
+                    let style = unsafe { GetWindowLongW(hwnd, GWL_STYLE) };
+                    let new_style = style & !(WS_CAPTION.0 as i32 | WS_THICKFRAME.0 as i32 | WS_SYSMENU.0 as i32);
+                    unsafe {
+                        SetWindowLongW(hwnd, GWL_STYLE, new_style);
+                    }
                     
                     // 将窗口设置为 WorkerW 的子窗口
                     let _ = SetParent(hwnd, Some(workerw));
                     
-                    // 确保窗口在最底层
+                    // 将屏幕坐标转换为相对于 WorkerW 的坐标
+                    let mut screen_point = POINT {
+                        x: pos_x,
+                        y: pos_y,
+                    };
+                    let _ = ScreenToClient(workerw, &mut screen_point);
+                    
+                    // 使用相对于 WorkerW 的坐标重新设置窗口位置
+                    // 这样可以确保窗口在正确的显示器位置上显示
+                    // 使用 SWP_FRAMECHANGED 确保窗口样式更改生效
                     let _ = SetWindowPos(
                         hwnd,
                         Some(HWND_BOTTOM),
-                        0, 0, 0, 0,
-                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+                        screen_point.x,
+                        screen_point.y,
+                        width as i32,
+                        height as i32,
+                        SWP_NOACTIVATE | SWP_FRAMECHANGED,
                     );
                 }
                 IS_WALLPAPER_MODE.store(true, Ordering::SeqCst);
@@ -151,11 +231,31 @@ fn get_wallpaper_mode() -> bool {
     IS_WALLPAPER_MODE.load(Ordering::SeqCst)
 }
 
+// 清理函数：恢复窗口状态，移除 WorkerW 父窗口
+#[cfg(windows)]
+fn cleanup_wallpaper_mode(window: &tauri::Window) {
+    if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
+        unsafe {
+            if let Ok(hwnd) = window.hwnd() {
+                let hwnd = HWND(hwnd.0 as *mut std::ffi::c_void);
+                // 移除父窗口，恢复为独立窗口
+                let _ = SetParent(hwnd, None);
+            }
+        }
+        IS_WALLPAPER_MODE.store(false, Ordering::SeqCst);
+    }
+}
+
+#[cfg(not(windows))]
+fn cleanup_wallpaper_mode(_window: &tauri::Window) {
+    // 非 Windows 平台不需要清理
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, toggle_wallpaper_mode, get_wallpaper_mode])
+        .invoke_handler(tauri::generate_handler![greet, toggle_wallpaper_mode, get_wallpaper_mode, get_available_monitors])
         .setup(|app| {
             // 创建托盘菜单
             let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
@@ -173,7 +273,7 @@ fn main() {
                         if let Some(window) = app.get_webview_window("main") {
                             // 如果在桌面背景模式，先退出
                             if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
-                                let _ = toggle_wallpaper_mode(window.clone());
+                                let _ = toggle_wallpaper_mode(window.clone(), None);
                             }
                             let _ = window.show();
                             let _ = window.set_focus();
@@ -181,10 +281,17 @@ fn main() {
                     }
                     "wallpaper" => {
                         if let Some(window) = app.get_webview_window("main") {
-                            let _ = toggle_wallpaper_mode(window);
+                            let _ = toggle_wallpaper_mode(window, None);
                         }
                     }
                     "quit" => {
+                        // 退出前清理：如果在桌面背景模式，先恢复窗口状态
+                        if let Some(window) = app.get_webview_window("main") {
+                            // 使用 toggle_wallpaper_mode 来完整恢复窗口状态
+                            if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
+                                let _ = toggle_wallpaper_mode(window, None);
+                            }
+                        }
                         app.exit(0);
                     }
                     _ => {}
@@ -200,7 +307,7 @@ fn main() {
                         if let Some(window) = app.get_webview_window("main") {
                             // 如果在桌面背景模式，先退出
                             if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
-                                let _ = toggle_wallpaper_mode(window.clone());
+                                let _ = toggle_wallpaper_mode(window.clone(), None);
                             }
                             let _ = window.show();
                             let _ = window.set_focus();
@@ -214,6 +321,8 @@ fn main() {
         .on_window_event(|window, event| {
             // 点击关闭按钮时隐藏窗口而不是退出
             if let WindowEvent::CloseRequested { api, .. } = event {
+                // 如果在桌面背景模式，先清理窗口状态
+                cleanup_wallpaper_mode(&window);
                 // 如果在桌面背景模式，不处理关闭事件
                 if !IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
                     window.hide().unwrap();

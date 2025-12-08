@@ -9,6 +9,7 @@ interface TimerProps {
   isRunning: boolean;
   completedPomodoros: number;
   autoHourlyMode: boolean;
+  isWallpaperMode?: boolean;
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
@@ -36,6 +37,7 @@ export function Timer({
   isRunning,
   completedPomodoros,
   autoHourlyMode,
+  isWallpaperMode = false,
   onStart,
   onPause,
   onReset,
@@ -57,18 +59,20 @@ export function Timer({
   }, [formattedTime, mode]);
 
   return (
-    <div className={`timer timer--${mode}`}>
-      <div className="timer__modes">
-        {(['work', 'shortBreak', 'longBreak'] as TimerMode[]).map((m) => (
-          <button
-            key={m}
-            className={`timer__mode-btn ${mode === m ? 'active' : ''}`}
-            onClick={() => onModeChange(m)}
-          >
-            {MODE_ICONS[m]} {MODE_LABELS[m]}
-          </button>
-        ))}
-      </div>
+    <div className={`timer timer--${mode} ${isWallpaperMode ? 'timer--wallpaper' : ''}`}>
+      {!isWallpaperMode && (
+        <div className="timer__modes">
+          {(['work', 'shortBreak', 'longBreak'] as TimerMode[]).map((m) => (
+            <button
+              key={m}
+              className={`timer__mode-btn ${mode === m ? 'active' : ''}`}
+              onClick={() => onModeChange(m)}
+            >
+              {MODE_ICONS[m]} {MODE_LABELS[m]}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="timer__display">
         <svg className="timer__progress" viewBox="0 0 100 100">
@@ -96,53 +100,57 @@ export function Timer({
         </div>
       </div>
 
-      <div className="timer__controls">
-        {!isRunning ? (
-          <button className="timer__btn timer__btn--primary" onClick={onStart}>
-            ▶ 开始
-          </button>
-        ) : (
-          <button className="timer__btn timer__btn--secondary" onClick={onPause}>
-            ⏸ 暂停
-          </button>
-        )}
-        <button className="timer__btn timer__btn--ghost" onClick={onReset}>
-          ↺ 重置
-        </button>
-        <button className="timer__btn timer__btn--ghost" onClick={onSkip}>
-          ⏭ 跳过
-        </button>
-      </div>
+      {!isWallpaperMode && (
+        <>
+          <div className="timer__controls">
+            {!isRunning ? (
+              <button className="timer__btn timer__btn--primary" onClick={onStart}>
+                ▶ 开始
+              </button>
+            ) : (
+              <button className="timer__btn timer__btn--secondary" onClick={onPause}>
+                ⏸ 暂停
+              </button>
+            )}
+            <button className="timer__btn timer__btn--ghost" onClick={onReset}>
+              ↺ 重置
+            </button>
+            <button className="timer__btn timer__btn--ghost" onClick={onSkip}>
+              ⏭ 跳过
+            </button>
+          </div>
 
-      <div className="timer__stats">
-        <div className="timer__stat">
-          <span className="timer__stat-value">{completedPomodoros}</span>
-          <span className="timer__stat-label">已完成番茄</span>
-        </div>
-        <div className="timer__stat">
-          <span className="timer__stat-value">{completedPomodoros * 25}</span>
-          <span className="timer__stat-label">专注分钟</span>
-        </div>
-      </div>
+          <div className="timer__stats">
+            <div className="timer__stat">
+              <span className="timer__stat-value">{completedPomodoros}</span>
+              <span className="timer__stat-label">已完成番茄</span>
+            </div>
+            <div className="timer__stat">
+              <span className="timer__stat-value">{completedPomodoros * 25}</span>
+              <span className="timer__stat-label">专注分钟</span>
+            </div>
+          </div>
 
-      <div className="timer__auto-hourly">
-        <button
-          className={`timer__auto-btn ${autoHourlyMode ? 'active' : ''}`}
-          onClick={onToggleAutoHourly}
-          title="开启后，每半小时自动切换专注/休息（25分钟专注 + 5分钟休息）"
-        >
-          <span className="timer__auto-icon">⏰</span>
-          <span className="timer__auto-text">半点自动</span>
-          <span className={`timer__auto-status ${autoHourlyMode ? 'on' : 'off'}`}>
-            {autoHourlyMode ? 'ON' : 'OFF'}
-          </span>
-        </button>
-        {autoHourlyMode && (
-          <span className="timer__auto-hint">
-            每半小时周期：25分钟专注 + 5分钟休息
-          </span>
-        )}
-      </div>
+          <div className="timer__auto-hourly">
+            <button
+              className={`timer__auto-btn ${autoHourlyMode ? 'active' : ''}`}
+              onClick={onToggleAutoHourly}
+              title="开启后，每半小时自动切换专注/休息（25分钟专注 + 5分钟休息）"
+            >
+              <span className="timer__auto-icon">⏰</span>
+              <span className="timer__auto-text">半点自动</span>
+              <span className={`timer__auto-status ${autoHourlyMode ? 'on' : 'off'}`}>
+                {autoHourlyMode ? 'ON' : 'OFF'}
+              </span>
+            </button>
+            {autoHourlyMode && (
+              <span className="timer__auto-hint">
+                每半小时周期：25分钟专注 + 5分钟休息
+              </span>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

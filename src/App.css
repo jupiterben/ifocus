@@ -85,8 +85,12 @@
 }
 
 /* 桌面背景按钮 */
-.app__wallpaper-btn {
+.app__wallpaper-controls {
+  position: relative;
   margin-top: 0.75rem;
+}
+
+.app__wallpaper-btn {
   padding: 0.5rem 1rem;
   border: 2px solid var(--accent);
   border-radius: 20px;
@@ -106,6 +110,89 @@
 .app__wallpaper-btn.active {
   background: var(--accent);
   color: white;
+}
+
+/* 显示器选择器 */
+.app__monitor-selector {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 1rem;
+  min-width: 250px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.app__monitor-selector-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.app__monitor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.app__monitor-item {
+  padding: 0.6rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2c3e50;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.app__monitor-item:hover {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 1);
+}
+
+.app__monitor-item.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.app__monitor-cancel {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f5f5f5;
+  color: #666;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app__monitor-cancel:hover {
+  background: #e0e0e0;
+  color: #333;
 }
 
 /* 主内容区 */
@@ -182,15 +269,22 @@
 
 /* 桌面背景模式 */
 .app--wallpaper {
-  background: transparent;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.app--wallpaper .app__main,
+.app--wallpaper .app__timer-section {
+  background-color: transparent !important;
+  background: transparent !important;
 }
 
 .app--wallpaper .app__background {
-  opacity: 0.85;
+  display: none;
 }
 
 .app--wallpaper .app__header {
-  padding-top: 1rem;
+  display: none;
 }
 
 .app--wallpaper .app__footer {
@@ -201,9 +295,23 @@
   display: none;
 }
 
+.app--wallpaper .app__active-task {
+  display: none;
+}
+
 .app--wallpaper .app__main {
   justify-content: center;
   align-items: center;
+  padding: 0;
+}
+
+.app--wallpaper .app__timer-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
 }
 
 /* 响应式 */
