@@ -14,6 +14,7 @@ export interface PomodoroSettings {
   shortBreakDuration: number; // 短休息时长
   longBreakDuration: number;  // 长休息时长
   longBreakInterval: number;  // 长休息间隔（几个番茄后）
+  autoHourlyMode: boolean;   // 自动整点模式
 }
 
 export interface Statistics {

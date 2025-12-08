@@ -84,6 +84,30 @@
   opacity: 0.8;
 }
 
+/* 桌面背景按钮 */
+.app__wallpaper-btn {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.app__wallpaper-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.app__wallpaper-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
 /* 主内容区 */
 .app__main {
   flex: 1;
@@ -154,6 +178,32 @@
   padding: 1rem;
   color: #95a5a6;
   font-size: 0.85rem;
+}
+
+/* 桌面背景模式 */
+.app--wallpaper {
+  background: transparent;
+}
+
+.app--wallpaper .app__background {
+  opacity: 0.85;
+}
+
+.app--wallpaper .app__header {
+  padding-top: 1rem;
+}
+
+.app--wallpaper .app__footer {
+  display: none;
+}
+
+.app--wallpaper .app__tasks-section {
+  display: none;
+}
+
+.app--wallpaper .app__main {
+  justify-content: center;
+  align-items: center;
 }
 
 /* 响应式 */

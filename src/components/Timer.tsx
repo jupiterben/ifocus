@@ -8,11 +8,13 @@ interface TimerProps {
   totalTime: number;
   isRunning: boolean;
   completedPomodoros: number;
+  autoHourlyMode: boolean;
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
   onSkip: () => void;
   onModeChange: (mode: TimerMode) => void;
+  onToggleAutoHourly: () => void;
 }
 
 const MODE_LABELS: Record<TimerMode, string> = {
@@ -33,11 +35,13 @@ export function Timer({
   totalTime,
   isRunning,
   completedPomodoros,
+  autoHourlyMode,
   onStart,
   onPause,
   onReset,
   onSkip,
   onModeChange,
+  onToggleAutoHourly,
 }: TimerProps) {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -119,6 +123,25 @@ export function Timer({
           <span className="timer__stat-value">{completedPomodoros * 25}</span>
           <span className="timer__stat-label">专注分钟</span>
         </div>
+      </div>
+
+      <div className="timer__auto-hourly">
+        <button
+          className={`timer__auto-btn ${autoHourlyMode ? 'active' : ''}`}
+          onClick={onToggleAutoHourly}
+          title="开启后，每半小时自动切换专注/休息（25分钟专注 + 5分钟休息）"
+        >
+          <span className="timer__auto-icon">⏰</span>
+          <span className="timer__auto-text">半点自动</span>
+          <span className={`timer__auto-status ${autoHourlyMode ? 'on' : 'off'}`}>
+            {autoHourlyMode ? 'ON' : 'OFF'}
+          </span>
+        </button>
+        {autoHourlyMode && (
+          <span className="timer__auto-hint">
+            每半小时周期：25分钟专注 + 5分钟休息
+          </span>
+        )}
       </div>
     </div>
   );

@@ -195,3 +195,64 @@
   color: #95a5a6;
 }
 
+/* 整点自动模式 */
+.timer__auto-hourly {
+  padding-top: 1rem;
+}
+
+.timer__auto-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  background: transparent;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.timer__auto-btn:hover {
+  border-color: var(--accent-color);
+  background: var(--accent-light);
+}
+
+.timer__auto-btn.active {
+  border-color: var(--accent-color);
+  background: var(--accent-light);
+}
+
+.timer__auto-icon {
+  font-size: 1.1rem;
+}
+
+.timer__auto-text {
+  color: #666;
+  font-weight: 500;
+}
+
+.timer__auto-status {
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.timer__auto-status.off {
+  background: #e0e0e0;
+  color: #999;
+}
+
+.timer__auto-status.on {
+  background: var(--accent-color);
+  color: white;
+}
+
+.timer__auto-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #999;
+}
+
