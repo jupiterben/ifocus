@@ -1,0 +1,97 @@
+.mini-timer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: transparent;
+  border-radius: 15px;
+  overflow: visible;
+  cursor: move;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.mini-timer--work {
+  --accent-color: #e74c3c;
+}
+
+.mini-timer--shortBreak {
+  --accent-color: #27ae60;
+}
+
+.mini-timer--longBreak {
+  --accent-color: #3498db;
+}
+
+.mini-timer__content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.8rem;
+  user-select: none;
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 1;
+}
+
+.mini-timer__icon {
+  font-size: 0.85rem;
+}
+
+.mini-timer__time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  letter-spacing: -1px;
+}
+
+.mini-timer__label {
+  font-size: 0.65rem;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.mini-timer__indicator {
+  font-size: 0.5rem;
+  color: var(--accent-color);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* 背景进度条 - 现代化风格 */
+.mini-timer__progress-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 0;
+  background: var(--accent-color);
+  transition: width 1s linear;
+  z-index: 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.mini-timer--work .mini-timer__progress-bg {
+  background: #e74c3c;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(231, 76, 60, 0.6);
+}
+
+.mini-timer--shortBreak .mini-timer__progress-bg {
+  background: #27ae60;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(39, 174, 96, 0.6);
+}
+
+.mini-timer--longBreak .mini-timer__progress-bg {
+  background: #3498db;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(52, 152, 219, 0.6);
+}
+

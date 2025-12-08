@@ -314,6 +314,26 @@
   min-height: 100vh;
 }
 
+/* Mini 模式 */
+.app--mini {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app--mini .app__background,
+.app--mini .app__header,
+.app--mini .app__main,
+.app--mini .app__footer {
+  display: none;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
   .app__main {

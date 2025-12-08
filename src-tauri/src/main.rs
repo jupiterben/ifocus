@@ -19,9 +19,11 @@ use windows::Win32::{
         GetWindowLongW, SetWindowLongW, GWL_STYLE,
         WS_CAPTION, WS_THICKFRAME, WS_SYSMENU,
     },
+    Graphics::Dwm::DwmSetWindowAttribute,
 };
 
 static IS_WALLPAPER_MODE: AtomicBool = AtomicBool::new(false);
+static IS_MINI_MODE: AtomicBool = AtomicBool::new(false);
 
 #[cfg(windows)]
 fn get_workerw() -> Option<HWND> {
@@ -182,11 +184,9 @@ fn toggle_wallpaper_mode(window: tauri::WebviewWindow, monitor_index: Option<usi
                     }));
                     
                     // 使用 Windows API 强制移除标题栏样式
-                    let style = unsafe { GetWindowLongW(hwnd, GWL_STYLE) };
+                    let style = GetWindowLongW(hwnd, GWL_STYLE);
                     let new_style = style & !(WS_CAPTION.0 as i32 | WS_THICKFRAME.0 as i32 | WS_SYSMENU.0 as i32);
-                    unsafe {
-                        SetWindowLongW(hwnd, GWL_STYLE, new_style);
-                    }
+                    SetWindowLongW(hwnd, GWL_STYLE, new_style);
                     
                     // 将窗口设置为 WorkerW 的子窗口
                     let _ = SetParent(hwnd, Some(workerw));
@@ -231,6 +231,63 @@ fn get_wallpaper_mode() -> bool {
     IS_WALLPAPER_MODE.load(Ordering::SeqCst)
 }
 
+#[tauri::command]
+fn toggle_mini_mode(window: tauri::WebviewWindow) -> Result<bool, String> {
+    let is_mini = IS_MINI_MODE.load(Ordering::SeqCst);
+    
+    if is_mini {
+        // 退出 mini 模式，恢复普通窗口
+        window.set_decorations(true).map_err(|e| e.to_string())?;
+        window.set_resizable(true).map_err(|e| e.to_string())?;
+        window.set_always_on_top(false).map_err(|e| e.to_string())?;
+        window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+            width: 800,
+            height: 600,
+        })).map_err(|e| e.to_string())?;
+        window.center().map_err(|e| e.to_string())?;
+        IS_MINI_MODE.store(false, Ordering::SeqCst);
+        Ok(false)
+    } else {
+        // 进入 mini 模式：小窗口、置顶、可拖动、无边框
+        window.set_decorations(false).map_err(|e| e.to_string())?;
+        window.set_resizable(false).map_err(|e| e.to_string())?;
+        window.set_always_on_top(true).map_err(|e| e.to_string())?;
+        window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+            width: 160,
+            height: 35,
+        })).map_err(|e| e.to_string())?;
+        
+        // 在 Windows 上设置窗口圆角
+        #[cfg(windows)]
+        {
+            unsafe {
+                if let Ok(hwnd) = window.hwnd() {
+                    let hwnd = HWND(hwnd.0 as *mut std::ffi::c_void);
+                    // DWMWA_WINDOW_CORNER_PREFERENCE = 33
+                    // DWMWCP_ROUND = 2 (圆角)
+                    let corner_preference: u32 = 2;
+                    use windows::Win32::Graphics::Dwm::DWMWINDOWATTRIBUTE;
+                    let _ = DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWINDOWATTRIBUTE(33), // DWMWA_WINDOW_CORNER_PREFERENCE
+                        &corner_preference as *const _ as *const std::ffi::c_void,
+                        std::mem::size_of::<u32>() as u32,
+                    );
+                }
+            }
+        }
+        
+        // 设置窗口可拖动（通过 CSS 的 -webkit-app-region: drag）
+        IS_MINI_MODE.store(true, Ordering::SeqCst);
+        Ok(true)
+    }
+}
+
+#[tauri::command]
+fn get_mini_mode() -> bool {
+    IS_MINI_MODE.load(Ordering::SeqCst)
+}
+
 // 清理函数：恢复窗口状态，移除 WorkerW 父窗口
 #[cfg(windows)]
 fn cleanup_wallpaper_mode(window: &tauri::Window) {
@@ -255,13 +312,14 @@ fn cleanup_wallpaper_mode(_window: &tauri::Window) {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, toggle_wallpaper_mode, get_wallpaper_mode, get_available_monitors])
+        .invoke_handler(tauri::generate_handler![greet, toggle_wallpaper_mode, get_wallpaper_mode, get_available_monitors, toggle_mini_mode, get_mini_mode])
         .setup(|app| {
             // 创建托盘菜单
             let show_item = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
             let wallpaper_item = MenuItem::with_id(app, "wallpaper", "桌面背景模式", true, None::<&str>)?;
+            let mini_item = MenuItem::with_id(app, "mini", "Mini 模式", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &wallpaper_item, &quit_item])?;
+            let menu = Menu::with_items(app, &[&show_item, &wallpaper_item, &mini_item, &quit_item])?;
 
             // 创建系统托盘
             let _tray = TrayIconBuilder::new()
@@ -275,6 +333,10 @@ fn main() {
                             if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
                                 let _ = toggle_wallpaper_mode(window.clone(), None);
                             }
+                            // 如果在 mini 模式，先退出
+                            if IS_MINI_MODE.load(Ordering::SeqCst) {
+                                let _ = toggle_mini_mode(window.clone());
+                            }
                             let _ = window.show();
                             let _ = window.set_focus();
                         }
@@ -284,12 +346,21 @@ fn main() {
                             let _ = toggle_wallpaper_mode(window, None);
                         }
                     }
+                    "mini" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = toggle_mini_mode(window);
+                        }
+                    }
                     "quit" => {
-                        // 退出前清理：如果在桌面背景模式，先恢复窗口状态
+                        // 退出前清理：如果在桌面背景模式或 mini 模式，先恢复窗口状态
                         if let Some(window) = app.get_webview_window("main") {
                             // 使用 toggle_wallpaper_mode 来完整恢复窗口状态
                             if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
-                                let _ = toggle_wallpaper_mode(window, None);
+                                let _ = toggle_wallpaper_mode(window.clone(), None);
+                            }
+                            // 退出 mini 模式
+                            if IS_MINI_MODE.load(Ordering::SeqCst) {
+                                let _ = toggle_mini_mode(window);
                             }
                         }
                         app.exit(0);
@@ -308,6 +379,10 @@ fn main() {
                             // 如果在桌面背景模式，先退出
                             if IS_WALLPAPER_MODE.load(Ordering::SeqCst) {
                                 let _ = toggle_wallpaper_mode(window.clone(), None);
+                            }
+                            // 如果在 mini 模式，先退出
+                            if IS_MINI_MODE.load(Ordering::SeqCst) {
+                                let _ = toggle_mini_mode(window.clone());
                             }
                             let _ = window.show();
                             let _ = window.set_focus();

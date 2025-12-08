@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useTimer } from './hooks/useTimer';
 import { useTasks } from './hooks/useTasks';
 import { Timer } from './components/Timer';
+import { MiniTimer } from './components/MiniTimer';
 import { TaskList } from './components/TaskList';
 import './App.css';
 
@@ -18,17 +19,19 @@ function App() {
   const timer = useTimer();
   const tasks = useTasks();
   const [isWallpaperMode, setIsWallpaperMode] = useState(false);
+  const [isMiniMode, setIsMiniMode] = useState(false);
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [showMonitorSelector, setShowMonitorSelector] = useState(false);
   const [selectedMonitorIndex, setSelectedMonitorIndex] = useState<number | null>(null);
 
-  // 初始化时获取桌面背景模式状态和显示器列表
+  // 初始化时获取桌面背景模式和 mini 模式状态和显示器列表
   useEffect(() => {
     invoke<boolean>('get_wallpaper_mode').then(setIsWallpaperMode).catch(() => {});
+    invoke<boolean>('get_mini_mode').then(setIsMiniMode).catch(() => {});
     loadMonitors();
   }, []);
 
-  // 根据桌面背景模式状态设置 body 和 html 类名
+  // 根据桌面背景模式和 mini 模式状态设置 body 和 html 类名
   useEffect(() => {
     if (isWallpaperMode) {
       document.body.classList.add('wallpaper-mode');
@@ -37,12 +40,21 @@ function App() {
       document.body.classList.remove('wallpaper-mode');
       document.documentElement.classList.remove('wallpaper-mode');
     }
+    if (isMiniMode) {
+      document.body.classList.add('mini-mode');
+      document.documentElement.classList.add('mini-mode');
+    } else {
+      document.body.classList.remove('mini-mode');
+      document.documentElement.classList.remove('mini-mode');
+    }
     // 清理函数：组件卸载时移除类名
     return () => {
       document.body.classList.remove('wallpaper-mode');
       document.documentElement.classList.remove('wallpaper-mode');
+      document.body.classList.remove('mini-mode');
+      document.documentElement.classList.remove('mini-mode');
     };
-  }, [isWallpaperMode]);
+  }, [isWallpaperMode, isMiniMode]);
 
   // 加载显示器列表
   const loadMonitors = useCallback(async () => {
@@ -73,6 +85,16 @@ function App() {
     }
   }, [selectedMonitorIndex]);
 
+  // 切换 mini 模式
+  const toggleMiniMode = useCallback(async () => {
+    try {
+      const result = await invoke<boolean>('toggle_mini_mode');
+      setIsMiniMode(result);
+    } catch (err) {
+      console.error('切换 mini 模式失败:', err);
+    }
+  }, []);
+
   // 显示显示器选择器
   const handleWallpaperButtonClick = useCallback(() => {
     if (isWallpaperMode) {
@@ -90,6 +112,21 @@ function App() {
       tasks.incrementPomodoro(tasks.activeTaskId);
     }
   }, [timer.mode]);
+
+  // 如果是 mini 模式，只显示 MiniTimer
+  if (isMiniMode) {
+    return (
+      <div className={`app app--${timer.mode} app--mini`}>
+        <MiniTimer
+          mode={timer.mode}
+          timeLeft={timer.timeLeft}
+          totalTime={timer.totalTime}
+          isRunning={timer.isRunning}
+          onExitMini={toggleMiniMode}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`app app--${timer.mode} ${isWallpaperMode ? 'app--wallpaper' : ''}`}>
@@ -112,6 +149,13 @@ function App() {
               title={isWallpaperMode ? '退出桌面背景模式' : '切换为桌面背景'}
             >
               🖼️ {isWallpaperMode ? '退出桌面' : '桌面背景'}
+            </button>
+            <button
+              className={`app__wallpaper-btn ${isMiniMode ? 'active' : ''}`}
+              onClick={toggleMiniMode}
+              title={isMiniMode ? '退出 mini 模式' : '切换为 mini 模式'}
+            >
+              📌 {isMiniMode ? '退出 mini' : 'Mini 模式'}
             </button>
             {showMonitorSelector && monitors.length > 0 && (
               <div className="app__monitor-selector">
