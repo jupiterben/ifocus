@@ -1,5 +1,6 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { TimerMode } from '../types';
 import './MiniTimer.css';
 
@@ -23,6 +24,8 @@ const MODE_ICONS: Record<TimerMode, string> = {
   longBreak: '🌴',
 };
 
+const DOUBLE_CLICK_DELAY = 300;
+
 export function MiniTimer({
   mode,
   timeLeft,
@@ -33,26 +36,23 @@ export function MiniTimer({
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
   const minutes = Math.ceil(timeLeft / 60);
   const [isFlashing, setIsFlashing] = useState(false);
+  const lastClickTimeRef = useRef(0);
+  const isDraggingRef = useRef(false);
 
-  const minutesValue = useMemo(() => {
-    return minutes;
-  }, [minutes]);
+  const minutesValue = useMemo(() => minutes, [minutes]);
 
-  // 检测状态切换并触发闪烁
   useEffect(() => {
     setIsFlashing(true);
-    const timer = setTimeout(() => {
-      setIsFlashing(false);
-    }, 1000); // 闪烁持续1秒
+    const timer = setTimeout(() => setIsFlashing(false), 1000);
     return () => clearTimeout(timer);
   }, [mode]);
 
-  // 更新页面标题
   useMemo(() => {
     document.title = `${minutesValue}分钟 - ${MODE_LABELS[mode]} | iFocus`;
   }, [minutesValue, mode]);
 
-  const handleDoubleClick = async () => {
+  // 退出 mini 模式
+  const exitMiniMode = useCallback(async () => {
     if (onExitMini) {
       onExitMini();
     } else {
@@ -62,16 +62,41 @@ export function MiniTimer({
         console.error('退出 mini 模式失败:', err);
       }
     }
-  };
+  }, [onExitMini]);
+
+  // 处理鼠标按下
+  const handleMouseDown = useCallback(async (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTimeRef.current;
+
+    // 检测双击
+    if (timeSinceLastClick < DOUBLE_CLICK_DELAY) {
+      lastClickTimeRef.current = 0;
+      isDraggingRef.current = false;
+      exitMiniMode();
+      return;
+    }
+
+    lastClickTimeRef.current = now;
+    isDraggingRef.current = true;
+
+    // 立即开始拖动
+    try {
+      await getCurrentWindow().startDragging();
+    } catch (err) {
+      console.error('拖动失败:', err);
+    }
+    isDraggingRef.current = false;
+  }, [exitMiniMode]);
 
   return (
     <div 
       className={`mini-timer mini-timer--${mode} ${isFlashing ? 'mini-timer--flashing' : ''}`}
-      data-tauri-drag-region
-      onDoubleClick={handleDoubleClick}
-      title="双击退出 mini 模式"
+      onMouseDown={handleMouseDown}
+      title="拖动移动，双击退出"
     >
-      {/* 背景进度条 */}
       <div 
         className="mini-timer__progress-bg" 
         style={{ width: `${progress}%` }}
@@ -87,4 +112,3 @@ export function MiniTimer({
     </div>
   );
 }
-

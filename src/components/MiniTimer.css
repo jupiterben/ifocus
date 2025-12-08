@@ -9,7 +9,6 @@
   overflow: visible;
   cursor: move;
   user-select: none;
-  -webkit-app-region: drag;
 }
 
 .mini-timer--work {
@@ -35,7 +34,6 @@
   gap: 0.3rem;
   padding: 0.2rem 0.8rem;
   user-select: none;
-  -webkit-app-region: drag;
   position: relative;
   z-index: 1;
 }
@@ -141,4 +139,5 @@
     transform: scale(1.05);
   }
 }
+
 
