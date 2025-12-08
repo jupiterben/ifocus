@@ -14,21 +14,24 @@
 
 .mini-timer--work {
   --accent-color: #e74c3c;
+  --accent-light: #ffeaea;
 }
 
 .mini-timer--shortBreak {
-  --accent-color: #27ae60;
+  --accent-color: #5dade2;
+  --accent-light: #e8f4fc;
 }
 
 .mini-timer--longBreak {
   --accent-color: #3498db;
+  --accent-light: #e8f4fc;
 }
 
 .mini-timer__content {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.3rem;
   padding: 0.2rem 0.8rem;
   user-select: none;
@@ -41,24 +44,52 @@
   font-size: 0.85rem;
 }
 
+/* 时间显示 */
 .mini-timer__time {
-  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+}
+
+.mini-timer__time-value {
+  font-size: 1.3rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  letter-spacing: -1px;
+  color: #2c3e50;
+  letter-spacing: -0.5px;
+  transition: all 0.3s ease;
+}
+
+.mini-timer__time-unit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(44, 62, 80, 0.7);
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+
+.mini-timer--work .mini-timer__time-value {
+  color: #2c3e50;
+}
+
+.mini-timer--work .mini-timer__time-unit {
+  color: rgba(44, 62, 80, 0.7);
+}
+
+.mini-timer--shortBreak .mini-timer__time-value {
+  color: #2c3e50;
 }
 
 .mini-timer__label {
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   color: var(--accent-color);
-  font-weight: 600;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .mini-timer__indicator {
   font-size: 0.5rem;
-  color: var(--accent-color);
+  color: #2c3e50;
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -67,7 +98,7 @@
   50% { opacity: 0.3; }
 }
 
-/* 背景进度条 - 现代化风格 */
+/* 背景进度条 */
 .mini-timer__progress-bg {
   position: absolute;
   top: 0;
@@ -81,17 +112,33 @@
 }
 
 .mini-timer--work .mini-timer__progress-bg {
-  background: #e74c3c;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(231, 76, 60, 0.6);
+  background: #c0392b;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(192, 57, 43, 0.7);
 }
 
 .mini-timer--shortBreak .mini-timer__progress-bg {
-  background: #27ae60;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(39, 174, 96, 0.6);
+  background: #5dade2;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(93, 173, 226, 0.6);
 }
 
 .mini-timer--longBreak .mini-timer__progress-bg {
   background: #3498db;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 25px rgba(52, 152, 219, 0.6);
+}
+
+/* 状态切换闪烁效果 */
+.mini-timer--flashing {
+  animation: flash 0.5s ease-in-out 2;
+}
+
+@keyframes flash {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
 }
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { TimerMode } from '../types';
 import './MiniTimer.css';
@@ -13,7 +13,7 @@ interface MiniTimerProps {
 
 const MODE_LABELS: Record<TimerMode, string> = {
   work: '专注',
-  shortBreak: '短休',
+  shortBreak: '休息',
   longBreak: '长休',
 };
 
@@ -30,18 +30,27 @@ export function MiniTimer({
   isRunning,
   onExitMini,
 }: MiniTimerProps) {
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
+  const minutes = Math.ceil(timeLeft / 60);
+  const [isFlashing, setIsFlashing] = useState(false);
 
-  const formattedTime = useMemo(() => {
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }, [minutes, seconds]);
+  const minutesValue = useMemo(() => {
+    return minutes;
+  }, [minutes]);
+
+  // 检测状态切换并触发闪烁
+  useEffect(() => {
+    setIsFlashing(true);
+    const timer = setTimeout(() => {
+      setIsFlashing(false);
+    }, 1000); // 闪烁持续1秒
+    return () => clearTimeout(timer);
+  }, [mode]);
 
   // 更新页面标题
   useMemo(() => {
-    document.title = `${formattedTime} - ${MODE_LABELS[mode]} | iFocus`;
-  }, [formattedTime, mode]);
+    document.title = `${minutesValue}分钟 - ${MODE_LABELS[mode]} | iFocus`;
+  }, [minutesValue, mode]);
 
   const handleDoubleClick = async () => {
     if (onExitMini) {
@@ -57,7 +66,7 @@ export function MiniTimer({
 
   return (
     <div 
-      className={`mini-timer mini-timer--${mode}`} 
+      className={`mini-timer mini-timer--${mode} ${isFlashing ? 'mini-timer--flashing' : ''}`}
       data-tauri-drag-region
       onDoubleClick={handleDoubleClick}
       title="双击退出 mini 模式"
@@ -69,8 +78,10 @@ export function MiniTimer({
       />
       <div className="mini-timer__content">
         <span className="mini-timer__icon">{MODE_ICONS[mode]}</span>
-        <span className="mini-timer__time">{formattedTime}</span>
-        <span className="mini-timer__label">{MODE_LABELS[mode]}</span>
+        <span className="mini-timer__time">
+          <span className="mini-timer__time-value">{minutesValue}</span>
+          <span className="mini-timer__time-unit">分钟</span>
+        </span>
         {isRunning && <span className="mini-timer__indicator">●</span>}
       </div>
     </div>
