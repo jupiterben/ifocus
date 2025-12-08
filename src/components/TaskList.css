@@ -1,0 +1,263 @@
+.task-list {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.task-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.task-list__header h2 {
+  font-size: 1.25rem;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.task-list__count {
+  font-size: 0.85rem;
+  color: #95a5a6;
+  background: #f0f0f0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+/* 表单 */
+.task-list__form {
+  margin-bottom: 1.5rem;
+}
+
+.task-list__input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 2px solid #eee;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  margin-bottom: 0.75rem;
+}
+
+.task-list__input:focus {
+  outline: none;
+  border-color: #e74c3c;
+}
+
+.task-list__form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.task-list__estimate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.task-list__estimate input {
+  width: 50px;
+  padding: 0.4rem;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.task-list__add-btn {
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task-list__add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+/* 任务项 */
+.task-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.task-list__empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #95a5a6;
+}
+
+.task-list__empty span {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.task-item:hover {
+  background: #f0f0f0;
+}
+
+.task-item.active {
+  border-color: #e74c3c;
+  background: #fff5f5;
+}
+
+.task-item.completed {
+  opacity: 0.6;
+}
+
+.task-item.completed .task-item__title {
+  text-decoration: line-through;
+  color: #95a5a6;
+}
+
+.task-item__check {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #27ae60;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.task-item__check:hover {
+  border-color: #27ae60;
+  background: #e8f8f0;
+}
+
+.task-item.completed .task-item__check {
+  background: #27ae60;
+  border-color: #27ae60;
+  color: white;
+}
+
+.task-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-item__title {
+  display: block;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-item__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.task-item__pomodoros {
+  display: flex;
+  gap: 2px;
+}
+
+.task-item__tomato {
+  font-size: 0.8rem;
+  opacity: 0.3;
+  transition: opacity 0.3s;
+}
+
+.task-item__tomato.filled {
+  opacity: 1;
+}
+
+.task-item__count {
+  font-size: 0.75rem;
+  color: #95a5a6;
+}
+
+.task-item__delete {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #bdc3c7;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.task-item:hover .task-item__delete {
+  opacity: 1;
+}
+
+.task-item__delete:hover {
+  background: #fee;
+  color: #e74c3c;
+}
+
+/* 底部 */
+.task-list__footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-list__summary {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.task-list__clear {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.task-list__clear:hover {
+  background: #fee;
+}
+

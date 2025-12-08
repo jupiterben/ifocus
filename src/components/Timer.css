@@ -1,0 +1,197 @@
+.timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  transition: all 0.5s ease;
+}
+
+.timer--work {
+  --accent-color: #e74c3c;
+  --accent-light: #ffeaea;
+}
+
+.timer--shortBreak {
+  --accent-color: #27ae60;
+  --accent-light: #e8f8f0;
+}
+
+.timer--longBreak {
+  --accent-color: #3498db;
+  --accent-light: #e8f4fc;
+}
+
+/* 模式切换按钮 */
+.timer__modes {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  background: var(--accent-light);
+  border-radius: 12px;
+}
+
+.timer__mode-btn {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.timer__mode-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.timer__mode-btn.active {
+  background: var(--accent-color);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 计时器显示 */
+.timer__display {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+
+.timer__progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timer__progress-bg {
+  fill: none;
+  stroke: var(--accent-light);
+  stroke-width: 6;
+}
+
+.timer__progress-bar {
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.timer__time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timer__icon {
+  font-size: 2.5rem;
+  animation: bounce 2s ease infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.timer__digits {
+  font-size: 4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #2c3e50;
+  letter-spacing: -2px;
+}
+
+.timer__label {
+  font-size: 1rem;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* 控制按钮 */
+.timer__controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.timer__btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.timer__btn--primary {
+  background: var(--accent-color);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.timer__btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.timer__btn--secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.timer__btn--secondary:hover {
+  background: #7f8c8d;
+}
+
+.timer__btn--ghost {
+  background: transparent;
+  color: #666;
+  border: 2px solid #e0e0e0;
+}
+
+.timer__btn--ghost:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* 统计信息 */
+.timer__stats {
+  display: flex;
+  gap: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.timer__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.timer__stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+.timer__stat-label {
+  font-size: 0.85rem;
+  color: #95a5a6;
+}
+

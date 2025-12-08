@@ -1,0 +1,10 @@
+[build]
+# 减少并行编译任务以降低内存占用
+jobs = 2
+
+[profile.dev]
+# 增量编译减少内存使用
+incremental = true
+# 减少代码生成单元
+codegen-units = 1
+

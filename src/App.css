@@ -1,0 +1,175 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.5s ease;
+}
+
+.app--work {
+  --bg-primary: #ffeaea;
+  --bg-secondary: #ffe0e0;
+  --accent: #e74c3c;
+}
+
+.app--shortBreak {
+  --bg-primary: #e8f8f0;
+  --bg-secondary: #d4f1e4;
+  --accent: #27ae60;
+}
+
+.app--longBreak {
+  --bg-primary: #e8f4fc;
+  --bg-secondary: #d4e8f8;
+  --accent: #3498db;
+}
+
+/* 背景装饰 */
+.app__background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.app__gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  transition: background 0.5s ease;
+}
+
+.app__pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.3) 2px, transparent 2px),
+                    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.3) 2px, transparent 2px);
+  background-size: 60px 60px;
+  opacity: 0.5;
+}
+
+/* 头部 */
+.app__header {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+}
+
+.app__logo {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.app__logo-icon {
+  font-size: 2.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.app__tagline {
+  color: var(--accent);
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* 主内容区 */
+.app__main {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 1rem 2rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.app__timer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app__active-task {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app__active-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.app__active-title {
+  font-size: 1rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.app__tasks-section {
+  flex: 1;
+  min-width: 320px;
+  max-width: 400px;
+}
+
+/* 底部 */
+.app__footer {
+  text-align: center;
+  padding: 1rem;
+  color: #95a5a6;
+  font-size: 0.85rem;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .app__main {
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .app__tasks-section {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app__logo {
+    font-size: 2rem;
+  }
+}
