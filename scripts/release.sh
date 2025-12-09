@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # 发布新版本的完整流程脚本
-# 用法: ./scripts/release.sh <version>
-# 示例: ./scripts/release.sh 0.2.0
+# 用法: ./scripts/release.sh <patch|minor|major>
+# 示例: ./scripts/release.sh patch
 #
 
 set -e
@@ -19,6 +19,29 @@ NC='\033[0m' # No Color
 # 获取当前版本
 get_version() {
   grep '"version"' "$ROOT_DIR/package.json" | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/'
+}
+
+# 计算新版本号
+bump_version() {
+  local version=$1
+  local bump_type=$2
+  local major minor patch
+  
+  IFS='.' read -r major minor patch <<< "$version"
+  # 移除 patch 中可能的预发布标签
+  patch="${patch%%-*}"
+  
+  case "$bump_type" in
+    major)
+      echo "$((major + 1)).0.0"
+      ;;
+    minor)
+      echo "$major.$((minor + 1)).0"
+      ;;
+    patch)
+      echo "$major.$minor.$((patch + 1))"
+      ;;
+  esac
 }
 
 # 更新 package.json
@@ -44,7 +67,7 @@ update_cargo_toml() {
 
 # 主流程
 main() {
-  local new_version=$1
+  local bump_type=$1
   local current_version=$(get_version)
 
   echo ""
@@ -53,26 +76,23 @@ main() {
   echo "当前版本: $current_version"
 
   # 检查参数
-  if [ -z "$new_version" ]; then
+  if [ -z "$bump_type" ]; then
     echo ""
-    echo "用法: ./scripts/release.sh <version>"
-    echo "示例: ./scripts/release.sh 0.2.0"
+    echo "用法: ./scripts/release.sh <patch|minor|major>"
+    echo "  patch - 修订版本 (0.0.x)"
+    echo "  minor - 次版本   (0.x.0)"
+    echo "  major - 主版本   (x.0.0)"
     exit 0
   fi
 
-  # 验证版本号格式
-  if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
-    echo -e "\n${RED}❌ 无效版本号格式，应为: x.y.z 或 x.y.z-beta.1${NC}"
+  # 验证参数
+  if [[ ! "$bump_type" =~ ^(patch|minor|major)$ ]]; then
+    echo -e "\n${RED}❌ 无效参数，应为: patch, minor 或 major${NC}"
     exit 1
   fi
 
-  # 检查版本号是否相同
-  if [ "$new_version" = "$current_version" ]; then
-    echo -e "\n${RED}❌ 新版本号与当前版本相同: $current_version${NC}"
-    exit 1
-  fi
-
-  echo "新版本: $new_version"
+  local new_version=$(bump_version "$current_version" "$bump_type")
+  echo "新版本: $new_version ($bump_type)"
 
   # Step 1: 同步版本号
   echo ""
