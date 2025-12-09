@@ -14,18 +14,6 @@
   -webkit-text-size-adjust: 100%;
 }
 
-/* 桌面背景模式下，所有背景透明 */
-html.wallpaper-mode,
-html.wallpaper-mode body,
-body.wallpaper-mode {
-  background-color: transparent !important;
-  background: transparent !important;
-}
-
-html.wallpaper-mode :root {
-  background-color: transparent !important;
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -41,13 +29,6 @@ html, body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-/* 桌面背景模式下，root 元素也要透明 */
-html.wallpaper-mode #root,
-body.wallpaper-mode #root {
-  background-color: transparent !important;
-  background: transparent !important;
 }
 
 /* 滚动条样式 */

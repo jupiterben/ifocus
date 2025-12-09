@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { TimerMode, PomodoroSettings } from '../types';
+import type { TimerMode, PomodoroSettings, LongBreakPeriod } from '../types';
+
+// 默认长休息时间段
+const DEFAULT_LONG_BREAK_PERIODS: LongBreakPeriod[] = [
+  { id: '1', name: '午餐', startTime: '12:00', endTime: '13:00', enabled: true },
+  { id: '2', name: '晚餐', startTime: '18:00', endTime: '19:00', enabled: true },
+  { id: '3', name: '睡觉', startTime: '23:00', endTime: '07:00', enabled: true },
+];
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
   workDuration: 25,
@@ -7,17 +14,21 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   longBreakDuration: 15,
   longBreakInterval: 4,
   autoHourlyMode: false,
+  longBreakPeriods: DEFAULT_LONG_BREAK_PERIODS,
 };
 
-// localStorage key
+// localStorage keys
 const STORAGE_KEY = 'ifocus_auto_hourly';
+const PERIODS_STORAGE_KEY = 'ifocus_long_break_periods';
 
 export function useTimer() {
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const savedAuto = localStorage.getItem(STORAGE_KEY);
+    const savedPeriods = localStorage.getItem(PERIODS_STORAGE_KEY);
     return {
       ...DEFAULT_SETTINGS,
-      autoHourlyMode: saved === 'true',
+      autoHourlyMode: savedAuto === 'true',
+      longBreakPeriods: savedPeriods ? JSON.parse(savedPeriods) : DEFAULT_LONG_BREAK_PERIODS,
     };
   });
   const [mode, setMode] = useState<TimerMode>('work');
@@ -40,6 +51,35 @@ export function useTimer() {
         return settings.longBreakDuration * 60;
     }
   }, [settings]);
+
+  // 检查当前时间是否在长休息时间段内
+  const isInLongBreakPeriod = useCallback(() => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (const period of settings.longBreakPeriods) {
+      if (!period.enabled) continue;
+
+      const [startH, startM] = period.startTime.split(':').map(Number);
+      const [endH, endM] = period.endTime.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      // 处理跨午夜的情况（如 23:00 - 07:00）
+      if (startMinutes > endMinutes) {
+        // 跨午夜：当前时间 >= 开始时间 或 当前时间 < 结束时间
+        if (currentMinutes >= startMinutes || currentMinutes < endMinutes) {
+          return period;
+        }
+      } else {
+        // 不跨午夜：当前时间在开始和结束之间
+        if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+          return period;
+        }
+      }
+    }
+    return null;
+  }, [settings.longBreakPeriods]);
 
   // 播放提示音
   const playNotificationSound = useCallback(() => {
@@ -117,6 +157,29 @@ export function useTimer() {
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
     
+    // 首先检查是否在长休息时间段内
+    const longBreakPeriod = isInLongBreakPeriod();
+    if (longBreakPeriod) {
+      // 计算距离长休息时间段结束的剩余时间
+      const [endH, endM] = longBreakPeriod.endTime.split(':').map(Number);
+      const endMinutes = endH * 60 + endM;
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      
+      let remainingMinutes: number;
+      if (endMinutes <= currentMinutes) {
+        // 跨午夜情况，结束时间在明天
+        remainingMinutes = (24 * 60 - currentMinutes) + endMinutes;
+      } else {
+        remainingMinutes = endMinutes - currentMinutes;
+      }
+      
+      return {
+        mode: 'longBreak' as TimerMode,
+        timeLeft: remainingMinutes * 60 - seconds,
+        periodName: longBreakPeriod.name,
+      };
+    }
+    
     // 每半小时一个周期：0-25分钟专注，25-30分钟休息
     // xx:00-xx:25 专注, xx:25-xx:30 休息
     // xx:30-xx:55 专注, xx:55-xx:00 休息
@@ -139,7 +202,7 @@ export function useTimer() {
         timeLeft: remainingMinutes * 60 + remainingSeconds,
       };
     }
-  }, []);
+  }, [isInLongBreakPeriod]);
 
   // 半点自动启动逻辑
   useEffect(() => {
@@ -151,14 +214,34 @@ export function useTimer() {
       return;
     }
 
-    const checkHalfHourly = () => {
+    const checkSchedule = () => {
       const now = new Date();
       const minutes = now.getMinutes();
       const seconds = now.getSeconds();
       
-      // 整点或半点时刻触发 (xx:00:00 或 xx:30:00)
-      if ((minutes === 0 || minutes === 30) && seconds === 0) {
-        const scheduled = getScheduledModeAndTime();
+      // 检查是否进入/退出长休息时间段
+      const scheduled = getScheduledModeAndTime();
+      
+      // 如果模式发生变化（进入或退出长休息时间段），更新状态
+      if (scheduled.mode !== mode) {
+        setMode(scheduled.mode);
+        setTimeLeft(scheduled.timeLeft);
+        setIsRunning(true);
+        
+        const timeStr = `${now.getHours()}:${minutes.toString().padStart(2, '0')}`;
+        if (scheduled.mode === 'longBreak') {
+          const periodName = (scheduled as { periodName?: string }).periodName || '长休息';
+          sendNotification(`🌴 ${periodName}时间`, `${timeStr} - 进入${periodName}时段，好好休息~`);
+        } else if (scheduled.mode === 'work') {
+          sendNotification('⏰ 自动专注开始！', `${timeStr} - 开始25分钟专注时段！`);
+        } else {
+          sendNotification('☕ 自动休息开始！', `${timeStr} - 休息5分钟！`);
+        }
+        return;
+      }
+      
+      // 整点或半点时刻触发 (xx:00:00 或 xx:30:00)，仅在非长休息时段
+      if ((minutes === 0 || minutes === 30) && seconds === 0 && scheduled.mode !== 'longBreak') {
         setMode(scheduled.mode);
         setTimeLeft(scheduled.timeLeft);
         setIsRunning(true);
@@ -173,7 +256,7 @@ export function useTimer() {
     };
 
     // 每秒检查一次
-    hourlyCheckRef.current = window.setInterval(checkHalfHourly, 1000);
+    hourlyCheckRef.current = window.setInterval(checkSchedule, 1000);
     
     // 立即同步到当前时间段
     const syncToCurrentPeriod = () => {
@@ -184,7 +267,10 @@ export function useTimer() {
       
       const now = new Date();
       const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-      if (scheduled.mode === 'work') {
+      if (scheduled.mode === 'longBreak') {
+        const periodName = (scheduled as { periodName?: string }).periodName || '长休息';
+        sendNotification(`🌴 ${periodName}时间`, `${timeStr} - 当前处于${periodName}时段`);
+      } else if (scheduled.mode === 'work') {
         sendNotification('⏰ 同步专注时段', `${timeStr} - 已同步到当前专注时段`);
       } else {
         sendNotification('☕ 同步休息时段', `${timeStr} - 已同步到当前休息时段`);
@@ -198,7 +284,7 @@ export function useTimer() {
         clearInterval(hourlyCheckRef.current);
       }
     };
-  }, [settings.autoHourlyMode, getScheduledModeAndTime, sendNotification]);
+  }, [settings.autoHourlyMode, getScheduledModeAndTime, sendNotification, mode]);
 
   // 请求通知权限
   useEffect(() => {
@@ -241,6 +327,39 @@ export function useTimer() {
     return nextHour;
   }, []);
 
+  // 添加长休息时间段
+  const addLongBreakPeriod = useCallback((period: Omit<LongBreakPeriod, 'id'>) => {
+    setSettings(prev => {
+      const newPeriod: LongBreakPeriod = {
+        ...period,
+        id: Date.now().toString(),
+      };
+      const newPeriods = [...prev.longBreakPeriods, newPeriod];
+      localStorage.setItem(PERIODS_STORAGE_KEY, JSON.stringify(newPeriods));
+      return { ...prev, longBreakPeriods: newPeriods };
+    });
+  }, []);
+
+  // 更新长休息时间段
+  const updateLongBreakPeriod = useCallback((id: string, updates: Partial<LongBreakPeriod>) => {
+    setSettings(prev => {
+      const newPeriods = prev.longBreakPeriods.map(p =>
+        p.id === id ? { ...p, ...updates } : p
+      );
+      localStorage.setItem(PERIODS_STORAGE_KEY, JSON.stringify(newPeriods));
+      return { ...prev, longBreakPeriods: newPeriods };
+    });
+  }, []);
+
+  // 删除长休息时间段
+  const removeLongBreakPeriod = useCallback((id: string) => {
+    setSettings(prev => {
+      const newPeriods = prev.longBreakPeriods.filter(p => p.id !== id);
+      localStorage.setItem(PERIODS_STORAGE_KEY, JSON.stringify(newPeriods));
+      return { ...prev, longBreakPeriods: newPeriods };
+    });
+  }, []);
+
   return {
     mode,
     timeLeft,
@@ -248,6 +367,7 @@ export function useTimer() {
     completedPomodoros,
     totalTime: getTotalTime(mode),
     autoHourlyMode: settings.autoHourlyMode,
+    longBreakPeriods: settings.longBreakPeriods,
     start,
     pause,
     reset,
@@ -255,5 +375,8 @@ export function useTimer() {
     setMode: setModeManually,
     toggleAutoHourlyMode,
     getNextHourTime,
+    addLongBreakPeriod,
+    updateLongBreakPeriod,
+    removeLongBreakPeriod,
   };
 }
