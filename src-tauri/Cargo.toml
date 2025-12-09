@@ -1,6 +1,6 @@
 [package]
 name = "ifocus"
-version = "1.0.9"
+version = "1.0.10"
 description = "iFocus desktop application"
 authors = ["you"]
 license = ""
