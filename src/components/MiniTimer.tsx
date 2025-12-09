@@ -41,6 +41,22 @@ export function MiniTimer({
 
   const minutesValue = useMemo(() => minutes, [minutes]);
 
+  // 计算当天剩余的半小时番茄数
+  const remainingPomodoros = useMemo(() => {
+    const now = new Date();
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const remainingMinutes = Math.floor((endOfDay.getTime() - now.getTime()) / 1000 / 60);
+    return Math.floor(remainingMinutes / 30);
+  }, [Math.floor(Date.now() / 60000)]); // 每分钟更新一次
+
+  // 根据剩余数量计算颜色：绿色(多) -> 黄色 -> 橙色(少)
+  const remainingColor = useMemo(() => {
+    const max = 32; // 16小时工作时间约32个番茄
+    const ratio = Math.min(remainingPomodoros / max, 1);
+    const hue = 30 + ratio * 90; // 30=橙, 75=黄, 120=绿
+    return `hsl(${hue}, 70%, 45%)`;
+  }, [remainingPomodoros]);
+
   useEffect(() => {
     setIsFlashing(true);
     const timer = setTimeout(() => setIsFlashing(false), 1000);
@@ -92,13 +108,13 @@ export function MiniTimer({
   }, [exitMiniMode]);
 
   return (
-    <div 
+    <div
       className={`mini-timer mini-timer--${mode} ${isFlashing ? 'mini-timer--flashing' : ''}`}
       onMouseDown={handleMouseDown}
       title="拖动移动，双击退出"
     >
-      <div 
-        className="mini-timer__progress-bg" 
+      <div
+        className="mini-timer__progress-bg"
         style={{ width: `${progress}%` }}
       />
       <div className="mini-timer__content">
@@ -107,7 +123,10 @@ export function MiniTimer({
           <span className="mini-timer__time-value">{minutesValue}</span>
           <span className="mini-timer__time-unit">分钟</span>
         </span>
-        {isRunning && <span className="mini-timer__indicator">●</span>}
+        <span className="mini-timer__remaining" title="今日剩余番茄数" style={{ color: remainingColor }}>
+          {remainingPomodoros}
+        </span>
+
       </div>
     </div>
   );

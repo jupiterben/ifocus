@@ -91,6 +91,13 @@
   animation: pulse 1s ease-in-out infinite;
 }
 
+.mini-timer__remaining {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-left: auto;
+  padding-right: 0.3rem;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
