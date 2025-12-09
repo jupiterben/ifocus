@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { LongBreakPeriod } from '../types';
+import { PERIOD_ICON_CATEGORIES } from '../types';
 import './Settings.css';
 
 interface SettingsProps {
@@ -19,19 +20,31 @@ export function Settings({
 }: SettingsProps) {
   const [newPeriod, setNewPeriod] = useState({
     name: '',
+    icon: '🌴',
     startTime: '12:00',
     endTime: '13:00',
   });
+  const [editingIconId, setEditingIconId] = useState<string | null>(null);
 
   const handleAddPeriod = () => {
     if (!newPeriod.name.trim()) return;
     onAddPeriod({
       name: newPeriod.name.trim(),
+      icon: newPeriod.icon,
       startTime: newPeriod.startTime,
       endTime: newPeriod.endTime,
       enabled: true,
     });
-    setNewPeriod({ name: '', startTime: '12:00', endTime: '13:00' });
+    setNewPeriod({ name: '', icon: '🌴', startTime: '12:00', endTime: '13:00' });
+  };
+
+  const handleSelectIcon = (periodId: string | 'new', icon: string) => {
+    if (periodId === 'new') {
+      setNewPeriod({ ...newPeriod, icon });
+    } else {
+      onUpdatePeriod(periodId, { icon });
+    }
+    setEditingIconId(null);
   };
 
   return (
@@ -60,6 +73,35 @@ export function Settings({
                     />
                     <span className="settings__period-slider"></span>
                   </label>
+                  <div className="settings__icon-wrapper">
+                    <button
+                      className="settings__icon-btn"
+                      onClick={() => setEditingIconId(editingIconId === period.id ? null : period.id)}
+                      title="选择图标"
+                    >
+                      {period.icon || '🌴'}
+                    </button>
+                    {editingIconId === period.id && (
+                      <div className="settings__icon-picker">
+                        {PERIOD_ICON_CATEGORIES.map((category) => (
+                          <div key={category.name} className="settings__icon-category">
+                            <span className="settings__icon-category-name">{category.name}</span>
+                            <div className="settings__icon-category-icons">
+                              {category.icons.map((icon) => (
+                                <button
+                                  key={icon}
+                                  className={`settings__icon-option ${period.icon === icon ? 'active' : ''}`}
+                                  onClick={() => handleSelectIcon(period.id, icon)}
+                                >
+                                  {icon}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <input
                     type="text"
                     className="settings__period-name"
@@ -92,6 +134,35 @@ export function Settings({
             </div>
 
             <div className="settings__add-period">
+              <div className="settings__icon-wrapper">
+                <button
+                  className="settings__icon-btn"
+                  onClick={() => setEditingIconId(editingIconId === 'new' ? null : 'new')}
+                  title="选择图标"
+                >
+                  {newPeriod.icon}
+                </button>
+                {editingIconId === 'new' && (
+                  <div className="settings__icon-picker">
+                    {PERIOD_ICON_CATEGORIES.map((category) => (
+                      <div key={category.name} className="settings__icon-category">
+                        <span className="settings__icon-category-name">{category.name}</span>
+                        <div className="settings__icon-category-icons">
+                          {category.icons.map((icon) => (
+                            <button
+                              key={icon}
+                              className={`settings__icon-option ${newPeriod.icon === icon ? 'active' : ''}`}
+                              onClick={() => handleSelectIcon('new', icon)}
+                            >
+                              {icon}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
                 className="settings__period-name"

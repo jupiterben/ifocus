@@ -10,19 +10,28 @@ interface MiniTimerProps {
   totalTime: number;
   isRunning: boolean;
   longBreakPeriods: LongBreakPeriod[];
+  currentPeriod?: LongBreakPeriod | null;
   onExitMini?: () => void;
 }
 
 const MODE_LABELS: Record<TimerMode, string> = {
   work: '专注',
   shortBreak: '休息',
-  longBreak: '长休',
+  longBreak: '长休息',
 };
 
 const MODE_ICONS: Record<TimerMode, string> = {
   work: '🍅',
   shortBreak: '☕',
   longBreak: '🌴',
+};
+
+// 获取显示标签和图标（长休息时显示时间段名称和自定义图标）
+const getModeDisplay = (mode: TimerMode, period?: LongBreakPeriod | null) => {
+  if (mode === 'longBreak' && period) {
+    return { label: period.name, icon: period.icon || '🌴' };
+  }
+  return { label: MODE_LABELS[mode], icon: MODE_ICONS[mode] };
 };
 
 const DOUBLE_CLICK_DELAY = 300;
@@ -32,6 +41,7 @@ export function MiniTimer({
   timeLeft,
   totalTime,
   longBreakPeriods,
+  currentPeriod,
   onExitMini,
 }: MiniTimerProps) {
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
@@ -103,9 +113,11 @@ export function MiniTimer({
     return () => clearTimeout(timer);
   }, [mode]);
 
+  const { label: modeLabel, icon: modeIcon } = getModeDisplay(mode, currentPeriod);
+
   useMemo(() => {
-    document.title = `${timeDisplay.value}${timeDisplay.unit} - ${MODE_LABELS[mode]} | iFocus`;
-  }, [timeDisplay, mode]);
+    document.title = `${timeDisplay.value}${timeDisplay.unit} - ${modeLabel} | iFocus`;
+  }, [timeDisplay, modeLabel]);
 
   // 退出 mini 模式
   const exitMiniMode = useCallback(async () => {
@@ -158,15 +170,15 @@ export function MiniTimer({
         style={{ width: `${progress}%` }}
       />
       <div className="mini-timer__content">
-        <span className="mini-timer__icon">{MODE_ICONS[mode]}</span>
+        <span className="mini-timer__icon">{modeIcon}</span>
         <span className="mini-timer__time">
           <span className="mini-timer__time-value">{timeDisplay.value}</span>
           <span className="mini-timer__time-unit">{timeDisplay.unit}</span>
         </span>
+        <span className="mini-timer__label">{modeLabel}</span>
         <span className="mini-timer__remaining" title="今日剩余番茄数" style={{ color: remainingColor }}>
           {remainingPomodoros}
         </span>
-
       </div>
     </div>
   );

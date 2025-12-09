@@ -3,9 +3,9 @@ import type { TimerMode, PomodoroSettings, LongBreakPeriod } from '../types';
 
 // 默认长休息时间段
 const DEFAULT_LONG_BREAK_PERIODS: LongBreakPeriod[] = [
-  { id: '1', name: '午餐', startTime: '12:00', endTime: '13:00', enabled: true },
-  { id: '2', name: '晚餐', startTime: '18:00', endTime: '19:00', enabled: true },
-  { id: '3', name: '睡觉', startTime: '23:00', endTime: '07:00', enabled: true },
+  { id: '1', name: '午餐', icon: '🍽️', startTime: '12:00', endTime: '13:00', enabled: true },
+  { id: '2', name: '晚餐', icon: '🍜', startTime: '18:00', endTime: '19:00', enabled: true },
+  { id: '3', name: '睡觉', icon: '😴', startTime: '23:00', endTime: '07:00', enabled: true },
 ];
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
@@ -35,6 +35,7 @@ export function useTimer() {
   const [timeLeft, setTimeLeft] = useState(settings.workDuration * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
+  const [currentPeriod, setCurrentPeriod] = useState<LongBreakPeriod | null>(null);
   
   const intervalRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -51,6 +52,22 @@ export function useTimer() {
         return settings.longBreakDuration * 60;
     }
   }, [settings]);
+
+  // 计算时间段的总时长（秒）
+  const getPeriodTotalTime = useCallback((period: LongBreakPeriod | null) => {
+    if (!period) return settings.longBreakDuration * 60;
+    
+    const [startH, startM] = period.startTime.split(':').map(Number);
+    const [endH, endM] = period.endTime.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    
+    // 处理跨午夜的情况
+    if (startMinutes > endMinutes) {
+      return ((24 * 60 - startMinutes) + endMinutes) * 60;
+    }
+    return (endMinutes - startMinutes) * 60;
+  }, [settings.longBreakDuration]);
 
   // 检查当前时间是否在长休息时间段内
   const isInLongBreakPeriod = useCallback(() => {
@@ -176,7 +193,7 @@ export function useTimer() {
       return {
         mode: 'longBreak' as TimerMode,
         timeLeft: remainingMinutes * 60 - seconds,
-        periodName: longBreakPeriod.name,
+        period: longBreakPeriod,
       };
     }
     
@@ -192,6 +209,7 @@ export function useTimer() {
       return {
         mode: 'work' as TimerMode,
         timeLeft: remainingMinutes * 60 + remainingSeconds,
+        period: null,
       };
     } else {
       // 休息时段：计算剩余休息时间
@@ -200,6 +218,7 @@ export function useTimer() {
       return {
         mode: 'shortBreak' as TimerMode,
         timeLeft: remainingMinutes * 60 + remainingSeconds,
+        period: null,
       };
     }
   }, [isInLongBreakPeriod]);
@@ -229,13 +248,17 @@ export function useTimer() {
         setIsRunning(true);
         
         const timeStr = `${now.getHours()}:${minutes.toString().padStart(2, '0')}`;
-        if (scheduled.mode === 'longBreak') {
-          const periodName = (scheduled as { periodName?: string }).periodName || '长休息';
-          sendNotification(`🌴 ${periodName}时间`, `${timeStr} - 进入${periodName}时段，好好休息~`);
-        } else if (scheduled.mode === 'work') {
-          sendNotification('⏰ 自动专注开始！', `${timeStr} - 开始25分钟专注时段！`);
+        if (scheduled.mode === 'longBreak' && scheduled.period) {
+          setCurrentPeriod(scheduled.period);
+          const icon = scheduled.period.icon || '🌴';
+          sendNotification(`${icon} ${scheduled.period.name}时间`, `${timeStr} - 进入${scheduled.period.name}时段，好好休息~`);
         } else {
-          sendNotification('☕ 自动休息开始！', `${timeStr} - 休息5分钟！`);
+          setCurrentPeriod(null);
+          if (scheduled.mode === 'work') {
+            sendNotification('⏰ 自动专注开始！', `${timeStr} - 开始25分钟专注时段！`);
+          } else {
+            sendNotification('☕ 自动休息开始！', `${timeStr} - 休息5分钟！`);
+          }
         }
         return;
       }
@@ -267,13 +290,17 @@ export function useTimer() {
       
       const now = new Date();
       const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-      if (scheduled.mode === 'longBreak') {
-        const periodName = (scheduled as { periodName?: string }).periodName || '长休息';
-        sendNotification(`🌴 ${periodName}时间`, `${timeStr} - 当前处于${periodName}时段`);
-      } else if (scheduled.mode === 'work') {
-        sendNotification('⏰ 同步专注时段', `${timeStr} - 已同步到当前专注时段`);
+      if (scheduled.mode === 'longBreak' && scheduled.period) {
+        setCurrentPeriod(scheduled.period);
+        const icon = scheduled.period.icon || '🌴';
+        sendNotification(`${icon} ${scheduled.period.name}时间`, `${timeStr} - 当前处于${scheduled.period.name}时段`);
       } else {
-        sendNotification('☕ 同步休息时段', `${timeStr} - 已同步到当前休息时段`);
+        setCurrentPeriod(null);
+        if (scheduled.mode === 'work') {
+          sendNotification('⏰ 同步专注时段', `${timeStr} - 已同步到当前专注时段`);
+        } else {
+          sendNotification('☕ 同步休息时段', `${timeStr} - 已同步到当前休息时段`);
+        }
       }
     };
     
@@ -327,6 +354,15 @@ export function useTimer() {
     return nextHour;
   }, []);
 
+  // 按起始时间排序
+  const sortPeriodsByStartTime = (periods: LongBreakPeriod[]) => {
+    return [...periods].sort((a, b) => {
+      const [aH, aM] = a.startTime.split(':').map(Number);
+      const [bH, bM] = b.startTime.split(':').map(Number);
+      return (aH * 60 + aM) - (bH * 60 + bM);
+    });
+  };
+
   // 添加长休息时间段
   const addLongBreakPeriod = useCallback((period: Omit<LongBreakPeriod, 'id'>) => {
     setSettings(prev => {
@@ -334,7 +370,7 @@ export function useTimer() {
         ...period,
         id: Date.now().toString(),
       };
-      const newPeriods = [...prev.longBreakPeriods, newPeriod];
+      const newPeriods = sortPeriodsByStartTime([...prev.longBreakPeriods, newPeriod]);
       localStorage.setItem(PERIODS_STORAGE_KEY, JSON.stringify(newPeriods));
       return { ...prev, longBreakPeriods: newPeriods };
     });
@@ -343,9 +379,10 @@ export function useTimer() {
   // 更新长休息时间段
   const updateLongBreakPeriod = useCallback((id: string, updates: Partial<LongBreakPeriod>) => {
     setSettings(prev => {
-      const newPeriods = prev.longBreakPeriods.map(p =>
+      const updatedPeriods = prev.longBreakPeriods.map(p =>
         p.id === id ? { ...p, ...updates } : p
       );
+      const newPeriods = sortPeriodsByStartTime(updatedPeriods);
       localStorage.setItem(PERIODS_STORAGE_KEY, JSON.stringify(newPeriods));
       return { ...prev, longBreakPeriods: newPeriods };
     });
@@ -360,14 +397,20 @@ export function useTimer() {
     });
   }, []);
 
+  // 计算实际的 totalTime（考虑时间段长休息）
+  const actualTotalTime = mode === 'longBreak' && currentPeriod 
+    ? getPeriodTotalTime(currentPeriod) 
+    : getTotalTime(mode);
+
   return {
     mode,
     timeLeft,
     isRunning,
     completedPomodoros,
-    totalTime: getTotalTime(mode),
+    totalTime: actualTotalTime,
     autoHourlyMode: settings.autoHourlyMode,
     longBreakPeriods: settings.longBreakPeriods,
+    currentPeriod,
     start,
     pause,
     reset,

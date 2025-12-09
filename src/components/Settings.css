@@ -19,7 +19,7 @@
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 90%;
-  max-width: 500px;
+  max-width: 600px;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
@@ -112,6 +112,90 @@
   background: #f8f9fa;
   border-radius: 10px;
   flex-wrap: wrap;
+}
+
+/* 图标选择器 */
+.settings__icon-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.settings__icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings__icon-btn:hover {
+  border-color: #3498db;
+  background: #f0f8ff;
+}
+
+.settings__icon-picker {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 340px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.settings__icon-category {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings__icon-category-name {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 500;
+  padding-left: 2px;
+}
+
+.settings__icon-category-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.settings__icon-option {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings__icon-option:hover {
+  background: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.settings__icon-option.active {
+  background: #e3f2fd;
+  box-shadow: 0 0 0 2px #3498db;
 }
 
 .settings__period-toggle {
@@ -239,7 +323,7 @@
 }
 
 /* 响应式 */
-@media (max-width: 500px) {
+@media (max-width: 600px) {
   .settings__period,
   .settings__add-period {
     flex-direction: column;

@@ -46,6 +46,12 @@ fn toggle_mini_mode(window: tauri::WebviewWindow) -> Result<AppState, String> {
     let is_mini = IS_MINI_MODE.load(Ordering::SeqCst);
     
     if is_mini {
+        // 退出 mini 模式：先清除大小限制，再恢复可调整
+        window.set_min_size(Some(tauri::Size::Physical(tauri::PhysicalSize {
+            width: 600,
+            height: 400,
+        }))).map_err(|e| e.to_string())?;
+        window.set_max_size(None::<tauri::Size>).map_err(|e| e.to_string())?;
         window.set_decorations(true).map_err(|e| e.to_string())?;
         window.set_resizable(true).map_err(|e| e.to_string())?;
         window.set_always_on_top(false).map_err(|e| e.to_string())?;
@@ -56,13 +62,17 @@ fn toggle_mini_mode(window: tauri::WebviewWindow) -> Result<AppState, String> {
         window.center().map_err(|e| e.to_string())?;
         IS_MINI_MODE.store(false, Ordering::SeqCst);
     } else {
+        // 进入 mini 模式：设置固定大小（min = max = size）
+        let mini_size = tauri::Size::Physical(tauri::PhysicalSize {
+            width: 200,
+            height: 35,
+        });
         window.set_decorations(false).map_err(|e| e.to_string())?;
         window.set_resizable(false).map_err(|e| e.to_string())?;
         window.set_always_on_top(true).map_err(|e| e.to_string())?;
-        window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
-            width: 160,
-            height: 35,
-        })).map_err(|e| e.to_string())?;
+        window.set_min_size(Some(mini_size.clone())).map_err(|e| e.to_string())?;
+        window.set_max_size(Some(mini_size.clone())).map_err(|e| e.to_string())?;
+        window.set_size(mini_size).map_err(|e| e.to_string())?;
         
         #[cfg(windows)]
         {

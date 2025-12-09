@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { TimerMode } from '../types';
+import type { TimerMode, LongBreakPeriod } from '../types';
 import './Timer.css';
 
 interface TimerProps {
@@ -9,6 +9,7 @@ interface TimerProps {
   isRunning: boolean;
   completedPomodoros: number;
   autoHourlyMode: boolean;
+  currentPeriod?: LongBreakPeriod | null;
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
@@ -29,6 +30,14 @@ const MODE_ICONS: Record<TimerMode, string> = {
   longBreak: '🌴',
 };
 
+// 获取显示标签和图标（长休息时显示时间段名称和自定义图标）
+const getModeDisplay = (mode: TimerMode, period?: LongBreakPeriod | null) => {
+  if (mode === 'longBreak' && period) {
+    return { label: period.name, icon: period.icon || '🌴' };
+  }
+  return { label: MODE_LABELS[mode], icon: MODE_ICONS[mode] };
+};
+
 export function Timer({
   mode,
   timeLeft,
@@ -36,6 +45,7 @@ export function Timer({
   isRunning,
   completedPomodoros,
   autoHourlyMode,
+  currentPeriod,
   onStart,
   onPause,
   onReset,
@@ -56,10 +66,12 @@ export function Timer({
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }, [hours, minutes, seconds]);
 
+  const { label: modeLabel, icon: modeIcon } = getModeDisplay(mode, currentPeriod);
+
   // 更新页面标题
   useMemo(() => {
-    document.title = `${formattedTime} - ${MODE_LABELS[mode]} | iFocus`;
-  }, [formattedTime, mode]);
+    document.title = `${formattedTime} - ${modeLabel} | iFocus`;
+  }, [formattedTime, modeLabel]);
 
   return (
     <div className={`timer timer--${mode}`}>
@@ -96,9 +108,9 @@ export function Timer({
           />
         </svg>
         <div className="timer__time">
-          <span className="timer__icon">{MODE_ICONS[mode]}</span>
+          <span className="timer__icon">{modeIcon}</span>
           <span className="timer__digits">{formattedTime}</span>
-          <span className="timer__label">{MODE_LABELS[mode]}</span>
+          <span className="timer__label">{modeLabel}</span>
         </div>
       </div>
 

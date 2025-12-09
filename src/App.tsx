@@ -55,6 +55,7 @@ function App() {
           totalTime={timer.totalTime}
           isRunning={timer.isRunning}
           longBreakPeriods={timer.longBreakPeriods}
+          currentPeriod={timer.currentPeriod}
           onExitMini={appState.toggleMiniMode}
         />
       </div>
@@ -101,6 +102,7 @@ function App() {
             isRunning={timer.isRunning}
             completedPomodoros={timer.completedPomodoros}
             autoHourlyMode={timer.autoHourlyMode}
+            currentPeriod={timer.currentPeriod}
             onStart={timer.start}
             onPause={timer.pause}
             onReset={timer.reset}
