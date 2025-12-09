@@ -30,7 +30,6 @@ export function MiniTimer({
   mode,
   timeLeft,
   totalTime,
-  isRunning,
   onExitMini,
 }: MiniTimerProps) {
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
