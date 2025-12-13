@@ -5,7 +5,7 @@
   "identifier": "com.ifocus.app",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:15173",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
@@ -18,7 +18,20 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "mobile": [],
+      "desktop": {
+        "schemes": ["ifocus"]
+      }
+    }
   },
   "app": {
     "windows": [
@@ -36,6 +49,7 @@
     ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": false
   }
 }

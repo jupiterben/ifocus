@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { LongBreakPeriod } from '../types';
 import { PERIOD_ICON_CATEGORIES } from '../types';
+import { useGitHubSync } from '../hooks/useGitHubSync';
 import './Settings.css';
 
 interface SettingsProps {
@@ -25,6 +26,8 @@ export function Settings({
     endTime: '13:00',
   });
   const [editingIconId, setEditingIconId] = useState<string | null>(null);
+  
+  const githubSync = useGitHubSync();
 
   const handleAddPeriod = () => {
     if (!newPeriod.name.trim()) return;
@@ -47,6 +50,42 @@ export function Settings({
     setEditingIconId(null);
   };
 
+  const handleLogin = async () => {
+    try {
+      await githubSync.login();
+      // OAuth 流程会自动在浏览器中打开，回调会通过 deep-link 处理
+    } catch (error) {
+      console.error('登录失败:', error);
+      alert(`登录失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  const handleUpload = async () => {
+    try {
+      await githubSync.uploadData();
+      alert('数据已同步到 GitHub');
+    } catch (error) {
+      alert(`同步失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!confirm('下载云端数据将覆盖本地数据，是否继续？')) return;
+    try {
+      await githubSync.downloadData(false);
+      alert('数据已从 GitHub 同步');
+      window.location.reload(); // 重新加载以应用新数据
+    } catch (error) {
+      alert(`同步失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
+  const formatSyncTime = (timestamp: number | null) => {
+    if (!timestamp) return '从未同步';
+    const date = new Date(timestamp);
+    return date.toLocaleString('zh-CN');
+  };
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings" onClick={(e) => e.stopPropagation()}>
@@ -56,6 +95,58 @@ export function Settings({
         </div>
 
         <div className="settings__content">
+          <section className="settings__section">
+            <h3 className="settings__section-title">🔐 GitHub 数据同步</h3>
+            <p className="settings__section-desc">
+              使用 GitHub 账号登录，将数据同步到云端，可在多设备间共享
+            </p>
+            
+            {githubSync.isLoggedIn ? (
+              <div className="settings__sync-section">
+                <div className="settings__user-info">
+                  <span>已登录: {githubSync.user?.login}</span>
+                  <button className="settings__logout-btn" onClick={githubSync.logout}>
+                    登出
+                  </button>
+                </div>
+                <div className="settings__sync-info">
+                  <p>最后同步: {formatSyncTime(githubSync.lastSyncTime)}</p>
+                  {githubSync.syncError && (
+                    <p className="settings__error">错误: {githubSync.syncError}</p>
+                  )}
+                </div>
+                <div className="settings__sync-actions">
+                  <button
+                    className="settings__sync-btn"
+                    onClick={handleUpload}
+                    disabled={githubSync.isSyncing}
+                  >
+                    {githubSync.isSyncing ? '同步中...' : '📤 上传到云端'}
+                  </button>
+                  <button
+                    className="settings__sync-btn"
+                    onClick={handleDownload}
+                    disabled={githubSync.isSyncing}
+                  >
+                    {githubSync.isSyncing ? '同步中...' : '📥 从云端下载'}
+                  </button>
+                </div>
+                <p className="settings__sync-hint">
+                  提示：数据存储在 GitHub Gist 中，私有且安全
+                </p>
+              </div>
+            ) : (
+              <div className="settings__sync-section">
+                <p className="settings__section-desc">
+                  点击按钮后将在浏览器中打开 GitHub 授权页面，授权后会自动返回应用完成登录。
+                </p>
+                <button className="settings__sync-btn" onClick={handleLogin}>
+                  🔑 使用 GitHub 登录
+                </button>
+              </div>
+            )}
+          </section>
+
           <section className="settings__section">
             <h3 className="settings__section-title">🌴 长休息时间段</h3>
             <p className="settings__section-desc">

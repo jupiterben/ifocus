@@ -15,6 +15,8 @@
 - **🖥️ 多显示器支持** - 自由选择桌面背景显示的目标屏幕
 - **🌈 优雅界面** - 根据专注/休息状态自动切换主题色
 - **💾 数据持久化** - 任务和设置本地保存，重启不丢失
+- **🔐 GitHub 数据同步** - 使用 GitHub 账号登录，将数据同步到云端，支持多设备共享
+- **🔒 单实例应用** - 防止重复启动，确保数据一致性和 OAuth 回调正常工作
 
 ## 📥 下载安装
 
@@ -33,6 +35,24 @@
 - **后端**: Rust + Tauri v2
 - **样式**: CSS Modules
 - **构建**: Vite + Cargo
+
+## 🔐 GitHub 数据同步
+
+iFocus 支持通过 GitHub 账号登录并将数据同步到云端。
+
+### 快速开始（Personal Access Token 方式）
+
+1. 创建 GitHub Personal Access Token（需要 `gist` 权限）
+2. 在应用设置中点击 "使用 GitHub 登录"
+3. 粘贴 Token 完成登录
+4. 使用 "上传到云端" 和 "从云端下载" 进行数据同步
+
+### 完整 OAuth 流程（可选）
+
+应用已内置 Tauri 后端支持完整 OAuth 认证流程，Client Secret 安全存储在本地。
+
+- 📖 用户配置指南：[GITHUB_SYNC.md](GITHUB_SYNC.md)
+- 🔧 开发实现指南：[GITHUB_OAUTH_SETUP.md](GITHUB_OAUTH_SETUP.md)
 
 ## 📋 前置要求
 

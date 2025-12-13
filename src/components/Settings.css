@@ -322,6 +322,128 @@
   cursor: not-allowed;
 }
 
+/* GitHub 同步样式 */
+.settings__sync-section {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.settings__user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.settings__user-info span {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.settings__logout-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  background: white;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings__logout-btn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.settings__sync-info {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.settings__error {
+  color: #e74c3c;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.settings__sync-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings__sync-btn {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #3498db;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings__sync-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.settings__sync-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.settings__sync-hint {
+  font-size: 0.75rem;
+  color: #95a5a6;
+  margin: 0;
+  margin-top: 0.5rem;
+}
+
+.settings__token-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings__token-field {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: monospace;
+  background: white;
+}
+
+.settings__token-field:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.settings__token-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.settings__token-actions .settings__sync-btn {
+  flex: 1;
+}
+
+.settings__token-actions .settings__sync-btn:last-child {
+  background: #95a5a6;
+}
+
+.settings__token-actions .settings__sync-btn:last-child:hover:not(:disabled) {
+  background: #7f8c8d;
+}
+
 /* 响应式 */
 @media (max-width: 600px) {
   .settings__period,
@@ -340,6 +462,16 @@
 
   .settings__period-separator {
     text-align: center;
+  }
+
+  .settings__sync-actions {
+    flex-direction: column;
+  }
+
+  .settings__user-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }
 
