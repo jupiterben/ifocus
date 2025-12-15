@@ -194,3 +194,34 @@ export function isLoggedIn(): boolean {
   return !!getStoredToken();
 }
 
+// 验证 token 是否有效
+export async function validateToken(): Promise<boolean> {
+  const token = getStoredToken();
+  if (!token) {
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `token ${token}`,
+        'User-Agent': 'iFocus-App',
+      },
+    });
+
+    if (!response.ok) {
+      // Token 无效，清除存储
+      clearAuth();
+      return false;
+    }
+
+    // Token 有效，更新用户信息
+    const user: GitHubUser = await response.json();
+    storeUser(user);
+    return true;
+  } catch (error) {
+    console.error('验证 token 失败:', error);
+    return false;
+  }
+}
+

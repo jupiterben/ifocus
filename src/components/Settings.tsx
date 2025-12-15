@@ -101,7 +101,13 @@ export function Settings({
               使用 GitHub 账号登录，将数据同步到云端，可在多设备间共享
             </p>
             
-            {githubSync.isLoggedIn ? (
+            {githubSync.isValidating ? (
+              <div className="settings__sync-section">
+                <p className="settings__section-desc">
+                  正在验证登录状态...
+                </p>
+              </div>
+            ) : githubSync.isLoggedIn ? (
               <div className="settings__sync-section">
                 <div className="settings__user-info">
                   <span>已登录: {githubSync.user?.login}</span>

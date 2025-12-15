@@ -7,6 +7,7 @@ import {
   isLoggedIn,
   getStoredUser,
   clearAuth,
+  validateToken,
   type GitHubUser,
   type SyncData,
 } from '../services/githubSync';
@@ -22,10 +23,36 @@ export function useGitHubSync() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
+  // 应用启动时验证 token
   useEffect(() => {
     const stored = getStoredUser();
     setUser(stored);
+    
+    // 如果有存储的用户信息，验证 token 是否仍然有效
+    if (stored) {
+      setIsValidating(true);
+      validateToken()
+        .then((isValid) => {
+          if (!isValid) {
+            console.warn('⚠️ Token 已失效，已清除登录状态');
+            setUser(null);
+            setSyncError('登录已过期，请重新登录');
+          } else {
+            console.log('✅ Token 验证成功，自动登录');
+            // 更新用户信息（validateToken 会更新存储的用户信息）
+            const updatedUser = getStoredUser();
+            setUser(updatedUser);
+          }
+        })
+        .catch((error) => {
+          console.error('验证 token 时出错:', error);
+        })
+        .finally(() => {
+          setIsValidating(false);
+        });
+    }
   }, []);
 
   // 处理 OAuth 回调的公共逻辑
@@ -234,6 +261,7 @@ export function useGitHubSync() {
     isSyncing,
     syncError,
     lastSyncTime,
+    isValidating,
     login,
     logout,
     uploadData,
