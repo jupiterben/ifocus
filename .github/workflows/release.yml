@@ -30,18 +30,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 先设置 pnpm（必须在 setup-node 之前）
+      # 先设置 pnpm
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      # 设置 Node.js（使用内置缓存，需要先安装 pnpm）
+      # 设置 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'pnpm'
+
+      # 缓存 pnpm store（加速依赖安装）
+      - name: Get pnpm store directory
+        shell: bash
+        id: pnpm-cache
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       # 安装 Rust 工具链（包含 clippy 和 rustfmt 组件）
       - name: Install Rust stable

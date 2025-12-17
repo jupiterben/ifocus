@@ -1,6 +1,6 @@
 {
   "name": "ifocus",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "iFocus - A Tauri desktop application",
   "type": "module",
   "scripts": {
