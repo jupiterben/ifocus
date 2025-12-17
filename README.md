@@ -174,7 +174,6 @@ pnpm release major
 - ⭐ 给项目点个 Star
 - 🐛 提交 Bug 报告或功能建议
 - 💰 [GitHub Sponsors](https://github.com/sponsors/jupiterben) - 通过 GitHub 官方赞助
-- ☕ [Buy Me a Coffee](https://www.buymeacoffee.com/jupiterben) - 请开发者喝杯咖啡
 
 你的支持是我持续改进项目的动力！🙏
 
