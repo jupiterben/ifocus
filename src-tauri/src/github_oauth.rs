@@ -31,8 +31,16 @@ pub struct AuthResult {
 const GITHUB_CLIENT_ID: &str = "Ov23liZpDAtVMTavdA3s";
 
 fn get_client_secret() -> Result<String, String> {
-    std::env::var("GITHUB_CLIENT_SECRET")
-        .map_err(|_| "未找到 GITHUB_CLIENT_SECRET 环境变量，请在 .env 文件中配置".to_string())
+    // 优先使用编译时环境变量（生产构建）
+    #[allow(unused_mut)]
+    let mut secret = option_env!("GITHUB_CLIENT_SECRET").map(|s| s.to_string());
+    
+    // 如果编译时没有，则尝试运行时环境变量（开发环境）
+    if secret.is_none() {
+        secret = std::env::var("GITHUB_CLIENT_SECRET").ok();
+    }
+    
+    secret.ok_or_else(|| "未找到 GITHUB_CLIENT_SECRET，请在构建时设置环境变量或在 .env 文件中配置".to_string())
 }
 
 /// 使用授权码交换访问令牌
