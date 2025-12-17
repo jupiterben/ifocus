@@ -147,27 +147,29 @@ jobs:
 
       - name: Notify WeChat on Success
         if: success()
+        shell: bash
         run: |
-          curl -X POST ${{ secrets.WECHAT_WEBHOOK }} \
+          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
             -H 'Content-Type: application/json' \
-            -d '{
-              "msgtype": "markdown",
-              "markdown": {
-                "content": "✅ **iFocus 构建完成**\n版本: `${{ github.ref_name }}`\n平台: ${{ matrix.platform }}"
+            -d "{
+              \"msgtype\": \"text\",
+              \"text\": {
+                \"content\": \"✅ iFocus 构建完成\n版本: ${{ github.ref_name }}\n平台: ${{ matrix.platform }}\n查看发布: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\"
               }
-            }'
+            }"
 
       - name: Notify WeChat on Failure
         if: failure()
+        shell: bash
         run: |
-          curl -X POST ${{ secrets.WECHAT_WEBHOOK }} \
+          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
             -H 'Content-Type: application/json' \
-            -d '{
-              "msgtype": "text",
-              "text": {
-                "content": "❌ iFocus 构建失败\n版本: ${{ github.ref_name }}\n平台: ${{ matrix.platform }}\n查看日志: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            -d "{
+              \"msgtype\": \"text\",
+              \"text\": {
+                \"content\": \"❌ iFocus 构建失败\n版本: ${{ github.ref_name }}\n平台: ${{ matrix.platform }}\n查看日志: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
               }
-            }'
+            }"
 
   # UpgradeLink 自动更新服务集成
   upgradelink-upload:
@@ -192,6 +194,7 @@ jobs:
     if: always()
     steps:
       - name: Final Notification
+        shell: bash
         run: |
           if [ "${{ needs.release.result }}" == "success" ] && [ "${{ needs.upgradelink-upload.result }}" == "success" ]; then
             STATUS="🎉 全部构建成功并已上传更新"
@@ -201,11 +204,11 @@ jobs:
             STATUS="⚠️ 部分构建失败"
           fi
 
-          curl -X POST ${{ secrets.WECHAT_WEBHOOK }} \
+          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
             -H 'Content-Type: application/json' \
-            -d '{
-              "msgtype": "text",
-              "text": {
-                "content": "'"$STATUS"'\n版本: ${{ github.ref_name }}\n查看发布页面: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+            -d "{
+              \"msgtype\": \"text\",
+              \"text\": {
+                \"content\": \"$STATUS\n版本: ${{ github.ref_name }}\n查看发布页面: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\"
               }
-            }'
+            }"
