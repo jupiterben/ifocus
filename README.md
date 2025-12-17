@@ -167,6 +167,17 @@ pnpm release major
 
 推送标签后，GitHub Actions 会自动构建多平台安装包并创建 Release。
 
+## 💝 捐助支持
+
+如果 iFocus 对你有帮助，欢迎通过以下方式支持项目开发：
+
+- ⭐ 给项目点个 Star
+- 🐛 提交 Bug 报告或功能建议
+- 💰 [GitHub Sponsors](https://github.com/sponsors/jupiterben) - 通过 GitHub 官方赞助
+- ☕ [Buy Me a Coffee](https://www.buymeacoffee.com/jupiterben) - 请开发者喝杯咖啡
+
+你的支持是我持续改进项目的动力！🙏
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！

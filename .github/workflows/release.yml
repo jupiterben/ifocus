@@ -30,7 +30,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 优化1: sccache - Rust 编译缓存
+      # 设置 Node.js（使用内置缓存）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      # 设置 pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # 安装 Rust 工具链（包含 clippy 和 rustfmt 组件）
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      # 添加 Rust target（macOS Intel）
+      - name: Add Rust target (macOS Intel)
+        if: matrix.platform == 'macos-latest' && matrix.args == '--target x86_64-apple-darwin'
+        run: rustup target add x86_64-apple-darwin
+
+      # Rust 编译缓存
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      # sccache - Rust 编译缓存（加速编译）
       - name: Install sccache
         uses: mozilla-actions/sccache-action@v0.0.4
 
@@ -40,63 +70,39 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
 
-      # 优化3: Linux 依赖 + mold 快速链接器
-      - name: Install dependencies (ubuntu only)
+      # 安装系统依赖（Ubuntu）
+      - name: Install system dependencies (Ubuntu)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf mold
+          sudo apt-get install -y \
+            build-essential \
+            wget \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            mold
           echo "RUSTFLAGS=-C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      # 优化2: pnpm 缓存
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Add Rust target (macOS Intel)
-        if: matrix.platform == 'macos-latest' && matrix.args == '--target x86_64-apple-darwin'
-        run: rustup target add x86_64-apple-darwin
-
-      # 优化3: Windows 快速链接器
+      # Windows 快速链接器配置
       - name: Setup fast linker (Windows only)
         if: matrix.platform == 'windows-latest'
         shell: bash
         run: |
           echo "RUSTFLAGS=-C link-arg=-fuse-ld=lld" >> $GITHUB_ENV
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "./src-tauri -> target"
-
+      # 安装前端依赖（使用 frozen-lockfile 确保版本一致）
       - name: Install frontend dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
+      # 构建应用
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
-        id: tauri-action  # 添加 id 以便后续引用输出
+        id: tauri-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -106,9 +112,23 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "iFocus v__VERSION__"
           releaseBody: "See the assets to download and install this version."
-          releaseDraft: false  # 改为 false，不创建草稿版本（自动发布）
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      # 验证构建产物（简单检查）
+      - name: Verify build artifacts
+        shell: bash
+        run: |
+          echo "🔍 检查构建产物..."
+          ARTIFACTS=$(find src-tauri/target -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" \) 2>/dev/null | wc -l)
+          if [ "$ARTIFACTS" -gt 0 ]; then
+            echo "✅ 找到 $ARTIFACTS 个构建产物"
+            echo "📦 构建产物列表:"
+            find src-tauri/target -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" \) 2>/dev/null | head -5
+          else
+            echo "⚠️  未找到构建产物，但构建步骤已成功完成（可能已上传到 Release）"
+          fi
 
       # 提取版本号（只在 ubuntu 平台执行一次）
       - name: Generate release tag

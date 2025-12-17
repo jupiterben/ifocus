@@ -1,0 +1,23 @@
+# 这些链接会在 GitHub 仓库页面显示为 "Sponsor" 按钮
+# 支持的平台和格式请参考: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# GitHub Sponsors (推荐)
+github: [jupiterben] # 例如: github: octocat
+
+# 其他平台（取消注释并填入你的链接）
+# patreon: # 例如: patreon: yourusername
+# open_collective: # 例如: open_collective: yourorg
+# ko_fi: # 例如: ko_fi: yourusername
+# tidelift: # 例如: tidelift: npm/yourpackage
+# community_bridge: # 例如: community_bridge: yourproject
+# liberapay: # 例如: liberapay: yourusername
+# issuehunt: # 例如: issuehunt: yourusername
+# otechie: # 例如: otechie: yourusername
+# lfx_crowdfunding: # 例如: lfx_crowdfunding: yourproject
+# polar: # 例如: polar: yourusername
+# buy_me_a_coffee: # 例如: buy_me_a_coffee: yourusername
+# thanks_dev: # 例如: thanks_dev: yourusername
+
+# 自定义链接（支持多个）
+# custom: ['https://www.buymeacoffee.com/yourusername', 'https://afdian.net/@yourusername']
+
