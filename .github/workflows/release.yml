@@ -96,7 +96,6 @@ jobs:
             libgtk-3-dev \
             libayatana-appindicator3-dev \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             mold
@@ -159,32 +158,6 @@ jobs:
         run: |
           echo "appVersion=${{ steps.save_tag.outputs.appVersion }}" >> $GITHUB_OUTPUT
 
-      - name: Notify WeChat on Success
-        if: success()
-        shell: bash
-        run: |
-          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
-            -H 'Content-Type: application/json' \
-            -d "{
-              \"msgtype\": \"text\",
-              \"text\": {
-                \"content\": \"✅ iFocus 构建完成\n版本: ${{ github.ref_name }}\n平台: ${{ matrix.platform }}\n查看发布: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\"
-              }
-            }"
-
-      - name: Notify WeChat on Failure
-        if: failure()
-        shell: bash
-        run: |
-          curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
-            -H 'Content-Type: application/json' \
-            -d "{
-              \"msgtype\": \"text\",
-              \"text\": {
-                \"content\": \"❌ iFocus 构建失败\n版本: ${{ github.ref_name }}\n平台: ${{ matrix.platform }}\n查看日志: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
-              }
-            }"
-
   # UpgradeLink 自动更新服务集成
   upgradelink-upload:
     needs: release
@@ -201,28 +174,20 @@ jobs:
           tauri-key: ${{ secrets.UPGRADE_LINK_TAURI_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  # 所有平台完成后的最终通知
+  # 所有平台完成后的最终通知（仅在全部成功时发送）
   notify-complete:
     needs: [release, upgradelink-upload]
     runs-on: ubuntu-latest
-    if: always()
+    if: success() # 只在全部成功时执行
     steps:
-      - name: Final Notification
+      - name: Final Success Notification
         shell: bash
         run: |
-          if [ "${{ needs.release.result }}" == "success" ] && [ "${{ needs.upgradelink-upload.result }}" == "success" ]; then
-            STATUS="🎉 全部构建成功并已上传更新"
-          elif [ "${{ needs.release.result }}" == "success" ]; then
-            STATUS="✅ 构建成功但更新上传失败"
-          else
-            STATUS="⚠️ 部分构建失败"
-          fi
-
           curl -X POST "${{ secrets.WECHAT_WEBHOOK }}" \
             -H 'Content-Type: application/json' \
             -d "{
               \"msgtype\": \"text\",
               \"text\": {
-                \"content\": \"$STATUS\n版本: ${{ github.ref_name }}\n查看发布页面: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\"
+                \"content\": \"🎉 iFocus 构建成功\n版本: ${{ github.ref_name }}\n所有平台构建完成并已上传更新\n查看发布页面: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\"
               }
             }"
