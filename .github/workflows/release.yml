@@ -158,25 +158,9 @@ jobs:
         run: |
           echo "appVersion=${{ steps.save_tag.outputs.appVersion }}" >> $GITHUB_OUTPUT
 
-  # UpgradeLink 自动更新服务集成
-  upgradelink-upload:
-    needs: release
-    runs-on: ubuntu-latest
-    if: success()
-    permissions:
-      contents: write
-    steps:
-      - name: Upload to UpgradeLink
-        uses: toolsetlink/upgradelink-action@v5
-        with:
-          source-url: 'https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/latest.json'
-          access-key: ${{ secrets.UPGRADE_LINK_ACCESS_KEY }}
-          tauri-key: ${{ secrets.UPGRADE_LINK_TAURI_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
   # 所有平台完成后的最终通知（仅在全部成功时发送）
   notify-complete:
-    needs: [release, upgradelink-upload]
+    needs: [release]
     runs-on: ubuntu-latest
     if: success() # 只在全部成功时执行
     steps:
