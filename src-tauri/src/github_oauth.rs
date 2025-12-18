@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tracing::{info, error, debug};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccessTokenResponse {
@@ -31,21 +32,34 @@ pub struct AuthResult {
 const GITHUB_CLIENT_ID: &str = "Ov23liZpDAtVMTavdA3s";
 
 fn get_client_secret() -> Result<String, String> {
+    debug!("正在获取 GitHub Client Secret");
+    
     // 优先使用编译时环境变量（生产构建）
     #[allow(unused_mut)]
     let mut secret = option_env!("GITHUB_CLIENT_SECRET").map(|s| s.to_string());
     
-    // 如果编译时没有，则尝试运行时环境变量（开发环境）
-    if secret.is_none() {
-        secret = std::env::var("GITHUB_CLIENT_SECRET").ok();
+    if secret.is_some() {
+        debug!("从编译时环境变量获取到 Client Secret");
     }
     
-    secret.ok_or_else(|| "未找到 GITHUB_CLIENT_SECRET，请在构建时设置环境变量或在 .env 文件中配置".to_string())
+    // 如果编译时没有，则尝试运行时环境变量（开发环境）
+    if secret.is_none() {
+        debug!("编译时环境变量未设置，尝试运行时环境变量");
+        secret = std::env::var("GITHUB_CLIENT_SECRET").ok();
+        if secret.is_some() {
+            debug!("从运行时环境变量获取到 Client Secret");
+        }
+    }
+    
+    secret.ok_or_else(|| {
+        error!("未找到 GITHUB_CLIENT_SECRET，请在构建时设置环境变量或在 .env 文件中配置");
+        "未找到 GITHUB_CLIENT_SECRET，请在构建时设置环境变量或在 .env 文件中配置".to_string()
+    })
 }
 
 /// 使用授权码交换访问令牌
 pub async fn exchange_code_for_token(code: &str) -> Result<String, String> {
-    println!("🔄 开始交换 access token，code: {}...", &code[..std::cmp::min(8, code.len())]);
+    info!("开始交换 access token，code: {}...", &code[..std::cmp::min(8, code.len())]);
     
     let client = reqwest::Client::new();
     let client_secret = get_client_secret()?;
@@ -56,7 +70,7 @@ pub async fn exchange_code_for_token(code: &str) -> Result<String, String> {
         ("code", code),
     ];
 
-    println!("📤 正在向 GitHub 发送 token 交换请求...");
+    debug!("正在向 GitHub 发送 token 交换请求...");
     let response = client
         .post("https://github.com/login/oauth/access_token")
         .header("Accept", "application/json")
@@ -64,33 +78,33 @@ pub async fn exchange_code_for_token(code: &str) -> Result<String, String> {
         .send()
         .await
         .map_err(|e| {
-            eprintln!("❌ 请求失败: {}", e);
+            error!("请求失败: {}", e);
             format!("请求失败: {}", e)
         })?;
 
     if !response.status().is_success() {
         let status = response.status();
-        eprintln!("❌ GitHub 返回错误状态: {}", status);
+        error!("GitHub 返回错误状态: {}", status);
         return Err(format!("GitHub 返回错误: {}", status));
     }
 
-    println!("📥 收到 GitHub 响应，正在解析...");
+    debug!("收到 GitHub 响应，正在解析...");
     
     // 先获取响应文本，以便在失败时查看原始内容
     let response_text = response
         .text()
         .await
         .map_err(|e| {
-            eprintln!("❌ 读取响应失败: {}", e);
+            error!("读取响应失败: {}", e);
             format!("读取响应失败: {}", e)
         })?;
     
-    println!("📄 响应内容: {}", response_text);
+    debug!("响应内容: {}", response_text);
     
     // 尝试解析为错误响应
     if let Ok(error_response) = serde_json::from_str::<GitHubOAuthError>(&response_text) {
-        eprintln!("❌ GitHub OAuth 错误: {}", error_response.error);
-        eprintln!("   描述: {}", error_response.error_description);
+        error!("GitHub OAuth 错误: {}", error_response.error);
+        error!("描述: {}", error_response.error_description);
         return Err(format!(
             "GitHub OAuth 失败: {} - {}",
             error_response.error, error_response.error_description
@@ -100,18 +114,18 @@ pub async fn exchange_code_for_token(code: &str) -> Result<String, String> {
     // 尝试解析为成功响应
     let token_response: AccessTokenResponse = serde_json::from_str(&response_text)
         .map_err(|e| {
-            eprintln!("❌ 解析响应失败: {}", e);
-            eprintln!("   响应内容: {}", response_text);
+            error!("解析响应失败: {}", e);
+            error!("响应内容: {}", response_text);
             format!("解析响应失败: {}。响应内容: {}", e, response_text)
         })?;
 
-    println!("✅ Access token 交换成功");
+    info!("Access token 交换成功");
     Ok(token_response.access_token)
 }
 
 /// 获取用户信息
 pub async fn get_user_info(token: &str) -> Result<GitHubUser, String> {
-    println!("🔄 开始获取用户信息...");
+    info!("开始获取用户信息...");
     let client = reqwest::Client::new();
 
     let response = client
@@ -121,13 +135,13 @@ pub async fn get_user_info(token: &str) -> Result<GitHubUser, String> {
         .send()
         .await
         .map_err(|e| {
-            eprintln!("❌ 获取用户信息请求失败: {}", e);
+            error!("获取用户信息请求失败: {}", e);
             format!("请求失败: {}", e)
         })?;
 
     if !response.status().is_success() {
         let status = response.status();
-        eprintln!("❌ GitHub API 返回错误状态: {}", status);
+        error!("GitHub API 返回错误状态: {}", status);
         return Err(format!("GitHub 返回错误: {}", status));
     }
 
@@ -135,11 +149,11 @@ pub async fn get_user_info(token: &str) -> Result<GitHubUser, String> {
         .json()
         .await
         .map_err(|e| {
-            eprintln!("❌ 解析用户信息失败: {}", e);
+            error!("解析用户信息失败: {}", e);
             format!("解析用户信息失败: {}", e)
         })?;
 
-    println!("✅ 用户信息获取成功: {}", user.login);
+    info!("用户信息获取成功: {}", user.login);
     Ok(user)
 }
 

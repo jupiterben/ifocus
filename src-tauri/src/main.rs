@@ -9,6 +9,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
+use tracing::{info, warn, error, debug};
 
 #[cfg(windows)]
 use windows::Win32::{
@@ -17,6 +18,45 @@ use windows::Win32::{
 };
 
 static IS_MINI_MODE: AtomicBool = AtomicBool::new(false);
+
+// 初始化日志系统
+fn init_logging() {
+    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_appender::rolling::{RollingFileAppender, Rotation};
+    
+    // 获取日志目录
+    let log_dir = std::env::var("IFOCUS_LOG_DIR")
+        .unwrap_or_else(|_| {
+            dirs::cache_dir()
+                .map(|p| p.join("ifocus").join("logs").to_string_lossy().to_string())
+                .unwrap_or_else(|| "./logs".to_string())
+        });
+    
+    // 创建按天滚动的日志文件
+    let file_appender = RollingFileAppender::new(
+        Rotation::DAILY,
+        &log_dir,
+        "ifocus.log",
+    );
+    
+    // 配置日志级别：开发模式 DEBUG，生产模式 INFO
+    let env_filter = if cfg!(debug_assertions) {
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("ifocus=debug,tauri=info"))
+    } else {
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("ifocus=info,tauri=warn"))
+    };
+    
+    // 构建日志订阅者
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt::layer().with_writer(std::io::stdout))  // 输出到控制台
+        .with(fmt::layer().with_writer(file_appender).with_ansi(false))  // 输出到文件
+        .init();
+    
+    info!("日志系统初始化完成，日志目录: {}", log_dir);
+}
 
 // 统一的应用状态结构
 #[derive(Clone, serde::Serialize)]
@@ -40,11 +80,11 @@ fn greet(name: &str) -> String {
 // GitHub OAuth 回调处理
 #[tauri::command]
 async fn handle_github_oauth(code: String) -> Result<github_oauth::AuthResult, String> {
-    println!("开始处理 GitHub OAuth，code: {}...", &code[..std::cmp::min(8, code.len())]);
+    info!("开始处理 GitHub OAuth，code: {}...", &code[..std::cmp::min(8, code.len())]);
     let result = github_oauth::handle_oauth_callback(code).await;
     match &result {
-        Ok(auth) => println!("GitHub OAuth 成功，用户: {}", auth.user.login),
-        Err(e) => println!("GitHub OAuth 失败: {}", e),
+        Ok(auth) => info!("GitHub OAuth 成功，用户: {}", auth.user.login),
+        Err(e) => error!("GitHub OAuth 失败: {}", e),
     }
     result
 }
@@ -58,6 +98,7 @@ fn get_app_state() -> AppState {
 #[tauri::command]
 fn toggle_mini_mode(window: tauri::WebviewWindow) -> Result<AppState, String> {
     let is_mini = IS_MINI_MODE.load(Ordering::SeqCst);
+    debug!("切换 Mini 模式: {} -> {}", is_mini, !is_mini);
     
     if is_mini {
         // 退出 mini 模式：先清除大小限制，再恢复可调整
@@ -115,8 +156,12 @@ fn toggle_mini_mode(window: tauri::WebviewWindow) -> Result<AppState, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
+    // 初始化日志系统
+    init_logging();
+    
     // 加载 .env 文件（如果存在）
     dotenv::dotenv().ok();
+    info!("iFocus 应用启动");
     
     let mut builder = tauri::Builder::default();
     
@@ -124,13 +169,14 @@ fn main() {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            println!("检测到新实例启动，参数: {:?}, 工作目录: {:?}", argv, cwd);
+            info!("检测到新实例启动，参数: {:?}, 工作目录: {:?}", argv, cwd);
             
             // deep-link 插件会自动处理 argv 中的 URL
             // 如果有 deep-link URL，会触发 deep-link://new-url 事件
             
             // 显示并聚焦主窗口
             if let Some(window) = app.get_webview_window("main") {
+                debug!("显示并聚焦主窗口");
                 let _ = window.show();
                 let _ = window.set_focus();
             }
@@ -147,7 +193,7 @@ fn main() {
             handle_github_oauth
         ])
         .setup(|app| {
-            println!("Deep link 插件已初始化，协议: ifocus://");
+            info!("Deep link 插件已初始化，协议: ifocus://");
             
             // 监听 deep-link 事件（通过 DeepLinkExt trait）
             use tauri_plugin_deep_link::DeepLinkExt;
@@ -155,7 +201,7 @@ fn main() {
             app.deep_link().on_open_url(|_event| {
                 // 注意：deep-link://new-url 事件会由插件自动发送到前端
                 // 前端的 onOpenUrl 会接收到这个事件
-                println!("收到 deep link 事件");
+                info!("收到 deep link 事件");
             });
             
             // Windows/Linux 开发模式下强制注册所有 scheme
@@ -163,9 +209,9 @@ fn main() {
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 if let Err(e) = app.deep_link().register_all() {
-                    eprintln!("注册 deep-link schemes 失败: {}", e);
+                    error!("注册 deep-link schemes 失败: {}", e);
                 } else {
-                    println!("已注册所有配置的 deep-link schemes");
+                    info!("已注册所有配置的 deep-link schemes");
                 }
             }
             
@@ -178,8 +224,11 @@ fn main() {
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .tooltip("iFocus")
-                .on_menu_event(|app, event| match event.id.as_ref() {
+                .on_menu_event(|app, event| {
+                    debug!("托盘菜单事件: {}", event.id.as_ref());
+                    match event.id.as_ref() {
                     "show" => {
+                            info!("触发显示窗口");
                         if let Some(window) = app.get_webview_window("main") {
                             if IS_MINI_MODE.load(Ordering::SeqCst) {
                                 let _ = toggle_mini_mode(window.clone());
@@ -189,11 +238,13 @@ fn main() {
                         }
                     }
                     "mini" => {
+                            info!("触发 Mini 模式切换");
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = toggle_mini_mode(window);
                         }
                     }
                     "quit" => {
+                            info!("触发退出应用");
                         if let Some(window) = app.get_webview_window("main") {
                             if IS_MINI_MODE.load(Ordering::SeqCst) {
                                 let _ = toggle_mini_mode(window);
@@ -202,6 +253,7 @@ fn main() {
                         app.exit(0);
                     }
                     _ => {}
+                    }
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
@@ -210,9 +262,11 @@ fn main() {
                         ..
                     } = event
                     {
+                        debug!("托盘图标左键点击");
                         let app = tray.app_handle();
                         if let Some(window) = app.get_webview_window("main") {
                             if IS_MINI_MODE.load(Ordering::SeqCst) {
+                                debug!("退出 Mini 模式");
                                 let _ = toggle_mini_mode(window.clone());
                             }
                             let _ = window.show();
@@ -226,6 +280,7 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                debug!("窗口关闭请求，将窗口隐藏到托盘");
                 window.hide().unwrap();
                 api.prevent_close();
             }
