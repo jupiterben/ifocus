@@ -18,6 +18,7 @@ Thumbs.db
 .env
 .env.local
 
-/pnpm-lock.yaml
-/package-lock.json
+# Lockfiles should be committed for reproducible builds
+# pnpm-lock.yaml 已移除，lockfile 应该被提交到版本控制
+# package-lock.json 已移除，lockfile 应该被提交到版本控制
 /tsconfig.node.tsbuildinfo
